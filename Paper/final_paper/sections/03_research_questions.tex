@@ -1,34 +1,28 @@
-\section{Research Questions and Gap Closure}
+\section{Research Questions and Study Design}
 
-The project is guided by four research questions:
+The study is organized around four research questions that connect the modeling choices to measurable outcomes.
 
 \textbf{RQ1: How can WLAN mobility traces be converted into a cooperative caching topology?}
-The answer is to model APs as graph nodes and user handoffs as weighted edges. This creates a mobility-derived topology that reflects observed interaction strength rather than assuming fixed cooperation neighborhoods.
+We model APs as graph nodes and user handoffs as weighted edges. The resulting graph captures observed mobility-induced interaction strength rather than assuming that every AP has the same cooperation neighborhood.
 
 \textbf{RQ2: Does topology-aware placement improve over local and global popularity baselines?}
-This is tested by comparing local popularity, global popularity, random placement, diversified popularity, topology-aware greedy, DQN-refined greedy, and Adaptive TACC.
+We compare topology-aware placement against random placement, local popularity, global popularity, and diversified popularity. This separates the value of graph-aware optimization from the value of simple catalog diversity.
 
-\textbf{RQ3: Does learning-based refinement add value beyond topology-aware greedy?}
-The DQN refiner starts from the greedy placement and searches for local modifications that reduce the objective. This tests whether learning improves a strong heuristic rather than replacing it with an unconstrained black box.
+\textbf{RQ3: Does learning-based refinement add value beyond topology-aware greedy placement?}
+The DQN refiner starts from a greedy placement and searches a local neighborhood of node-content changes. This tests whether learning can improve a strong structured baseline without requiring a neural policy to learn the full placement problem from scratch.
 
-\textbf{RQ4: Is one static placement policy sufficient under all perturbation regimes?}
-The results show that the answer is no. Moderate perturbation favors diversity-aware placement, while nominal and high-churn regimes favor DQN-refined greedy. This motivates Adaptive TACC's validation-based selector.
+\textbf{RQ4: Is one static placement policy sufficient under all topology perturbation regimes?}
+We evaluate policies across multiple perturbation rates. This tests whether a single placement rule remains best as AP availability and cooperative edges change, or whether a selector is needed to adapt across operating regimes.
 
-\subsection{High-Level Consistency Questions}
+\subsection{Research Hypotheses}
 
-Before defining algorithms, we use three simple consistency questions to check whether the work is coherent.
+The research questions lead to three hypotheses. First, topology-aware placement should outperform local and global popularity because it can exploit cooperative paths while controlling duplication. Second, DQN refinement should improve greedy placement when the greedy solution is strong but not locally optimal. Third, a selector should outperform any single policy across perturbation regimes because the relative value of precise graph placement and broad content diversity changes as the graph is perturbed.
 
-\textbf{What is the goal of the study?}
-The goal is to reduce content access cost in an IoT edge network by placing content across cooperative edge caches in a way that uses mobility-derived topology. The target is not merely local hit maximization; the target is lower total cost under storage limits, redundancy concerns, and topology changes.
+These hypotheses are intentionally modest. The study does not assume that DQN is always best, that diversity is always best, or that topology awareness alone solves every perturbation condition. Instead, the experimental design asks when each behavior is useful and whether Adaptive TACC can choose among them using validation samples.
 
-\textbf{How is the algorithm adapting?}
-The algorithm adapts at two levels. At the placement level, DQN refinement changes selected node-content assignments around a topology-aware greedy warm start. At the policy level, Adaptive TACC selects between diversified placement and DQN-refined greedy according to validation performance under the current perturbation regime.
+\subsection{Gap Closure Strategy}
 
-\textbf{What changes when the graph is perturbed?}
-When the graph is perturbed, some nodes and edges become unavailable. This changes which cached objects can be reached, how far they are in graph latency, how much redundancy exists among active neighbors, and whether a request becomes a cooperative hit or an origin miss. Therefore, the same cache matrix can have different objective values under different graph realizations.
-
-\textbf{Why not use only one caching rule?}
-The experiments show that policy quality depends on perturbation intensity. DQN-refined greedy is best in nominal and high-churn settings, while diversified popularity is stronger in moderate perturbation. Adaptive TACC exists because the correct caching behavior is regime-dependent.
+Prior conceptual caching studies sometimes describe a graph, a greedy algorithm, and a learning component without specifying the operational details needed to reproduce the claims. This study closes those gaps by fixing the graph-construction rules, defining a stochastic objective, specifying the DQN state/action/reward design, using strong baselines, and reporting measured metrics under repeated perturbation samples.
 
 \begin{table}[t]
 \centering
@@ -38,13 +32,19 @@ The experiments show that policy quality depends on perturbation intensity. DQN-
 \toprule
 Gap & Closure \\
 \midrule
-Executable reproducibility & We implement a complete Python pipeline under \texttt{src/tacc/} and runnable scripts under \texttt{scripts/}. \\
-Dataset access ambiguity & We record official Dartmouth/IEEE DataPort access notes and use a clearly labeled deterministic mobility generator. \\
-Vague graph construction & We define OFF filtering, AP selection, handoff counting, edge weighting, and connected-component selection. \\
-Thin demand model & We use Zipf popularity, spatial locality, fixed seeds, catalog size, and cache capacity. \\
-Conceptual DRL only & We implement DQN with replay, target network, epsilon-greedy exploration, graph features, and accepted-action inference. \\
-Unsupported results & We generate CSV metrics, sample-level metrics, LaTeX tables, and perturbation figures from executed experiments. \\
-One-policy overclaim & We introduce Adaptive TACC and report measured policy-regime trade-offs. \\
+Unspecified cooperation graph & APs are represented as graph nodes; handoff counts define weighted edges and latency weights. \\
+Ambiguous dataset handling & Official Dartmouth/IEEE DataPort access is documented, and trace-compatible mobility data is generated deterministically when raw traces are unavailable. \\
+Unrealistic demand homogeneity & Demand uses Zipf popularity with AP-level spatial locality. \\
+Single weak baseline comparison & Evaluation includes random, local, global, diversified, greedy, DQN-refined, and adaptive policies. \\
+Conceptual learning component & DQN uses explicit state, action, reward, replay, target network, exploration, and accepted-action inference. \\
+No robustness evaluation & Policies are evaluated over repeated node and edge perturbation samples. \\
+Overclaiming one method & Adaptive TACC selects among candidate policies because perturbation regimes favor different placement behavior. \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\subsection{Interpretation of Adaptation}
+
+Adaptation in this study is not defined as arbitrary cache rewriting. It has a precise meaning. At the placement level, DQN refinement proposes changes to a greedy placement and accepts only objective-improving actions. At the regime level, Adaptive TACC selects the policy family with the best validation score under the current perturbation rate. Therefore, adaptation occurs through bounded local refinement and policy selection, not through uncontrolled replacement of all cached content.
+
+Graph perturbation also has a concrete meaning. If a node is removed, cached objects stored only at that node are no longer available in the active component. If an edge is removed, shortest-path retrieval latency may increase and cooperative hits may become origin misses. If strongly connected APs remain active, redundant copies among them still contribute to redundancy cost. These changes explain why the same placement matrix can produce different access cost, hit decomposition, redundancy, and objective value under different graph samples.

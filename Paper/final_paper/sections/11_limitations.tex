@@ -4,7 +4,7 @@ The first limitation is dataset access. The study is designed around the Dartmou
 
 The second limitation is synthetic content demand. Zipf popularity and spatial locality are research-backed assumptions, but real application demand may include burstiness, temporal drift, content lifetimes, and user-specific preferences. Future work should rerun the pipeline with real content logs if available.
 
-The third limitation is scale. The final experiment uses 20 nodes and 48 objects. Larger graphs would require faster candidate evaluation, batched shortest-path computation, and possibly graph neural encoders. The current implementation favors clarity and reproducibility over large-scale optimization.
+The third limitation is scale. The final experiment uses 20 nodes and 48 objects. Larger graphs would require faster candidate evaluation, batched shortest-path computation, and possibly graph neural encoders. The current method favors clarity and reproducibility over large-scale optimization.
 
 The fourth limitation is selector dependence on validation perturbations. Adaptive TACC assumes that held-out perturbation samples resemble the test regime. If topology changes in a qualitatively different way, the selector may choose a suboptimal policy. This can be addressed with online monitoring, confidence intervals, and periodic retraining.
 

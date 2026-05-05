@@ -1,35 +1,38 @@
-\section{Background and Challenges}
+\section{Background and Research Challenges}
 
-\subsection{IoT Edge Caching}
+\subsection{Edge Caching in IoT and MEC}
 
-In an IoT edge network, devices generate requests through nearby infrastructure such as APs, gateways, base stations, or edge servers. If the requested object is cached locally, the request is served with low delay. If not, the node may retrieve the object from a neighboring edge cache or from a remote origin. Cooperative caching improves coverage by letting nodes use nearby caches, but cooperation is not free: retrieving from another node has communication delay, and storing duplicate objects in nearby caches can waste limited storage.
+IoT edge networks combine communication, computation, storage, and sensing close to end devices. Edge caching is one storage-side mechanism within this broader MEC setting. When content is served from a local AP or gateway, the system can reduce origin-server traffic and improve latency. When content is not local, the request may be served from a neighboring edge cache or from a remote origin, depending on connectivity and cache placement. This makes cooperative caching a joint storage and network problem rather than a purely local replacement problem \cite{Mao2017MEC,Paschos2018RoleCaching,Li2018CachingSurvey}.
 
-\subsection{Mobility-Induced Topology}
+The IoT setting introduces constraints that differ from traditional web caching. Edge nodes often have small storage capacity, intermittent availability, heterogeneous demand, and limited update bandwidth. A cache decision that is optimal for a powerful CDN node may be poor for an AP-like edge cache because APs interact through short-range connectivity, mobility-induced associations, and local demand variation. These constraints motivate explicit modeling of capacity, access latency, cooperation topology, and update cost.
 
-The key modeling choice is the use of mobility as a topology signal. APs that exchange many users through handoffs are not merely physically close; they are behaviorally related. Their users may request similar content, and content missed at one AP may soon be needed at another. Handoff graphs and neighbor graphs have been used in WLAN mobility analysis and handoff optimization \cite{kim2005mobility_wifi_ap,shin2004neighbor_graphs}. We reuse that idea for cooperative caching: mobility-derived edges become the structure over which cache cooperation is evaluated.
+\subsection{Mobility-Induced Cooperation}
 
-\subsection{Why Local Caching Is Insufficient}
+The key modeling assumption in this work is that mobility induces cooperation opportunities. APs that exchange many users through handoffs are behaviorally related even if their physical distance is unknown. Their request processes may be correlated, and a cache miss at one AP may be served efficiently by another AP that lies on a frequent mobility path. WLAN mobility studies and neighbor-graph methods show that AP transitions provide useful structure for understanding user movement and handoff behavior \cite{kim2005mobility_wifi_ap,shin2004neighbor_graphs,Kotz2004Dartmouth,kotz_dartmouth_campus_2009}.
 
-Node-local policies such as local popularity caching are scalable and simple, but they ignore the fact that nearby nodes can cooperate. If every AP stores only its own top objects, the system may miss opportunities to diversify neighboring caches. Conversely, if every AP stores the same globally popular objects, local hit rates may improve for the most popular objects, but many requests still go to the origin because the cooperative cache footprint is small. Effective edge caching must balance popularity, diversity, and graph distance.
+This mobility-derived graph differs from a static deployment graph. A physical AP layout describes where infrastructure is installed. A handoff graph describes how clients actually move through that infrastructure. For caching, the behavioral graph is often more relevant because content demand follows users. If two APs are physically close but never share users, duplication between them may be less harmful than duplication between APs with frequent handoffs. Conversely, APs that exchange many users may benefit from complementary content placement even if they are not immediate physical neighbors.
 
-\subsection{Dynamic Perturbations}
+\subsection{Demand Without Content Logs}
 
-The effective edge graph may change because APs become unavailable, users move differently, or links become less useful. A robust policy should remain useful under perturbed graphs, not only under the nominal graph. However, adapting cache placement has a cost. Rewriting caches too frequently consumes bandwidth and storage operations, and it may be infeasible for resource-constrained edge devices. This motivates an objective with both access efficiency and relocation stability.
+Many mobility traces record association events but not application-layer content requests. The Dartmouth campus trace family is valuable because it captures large-scale WLAN mobility, but it does not directly provide object-level content demand for caching. This creates a common evaluation problem: using real mobility structure requires synthetic or externally modeled content demand. Zipf-like popularity has strong empirical support in caching research and remains a standard modeling choice for content catalogs \cite{breslau1999zipf,Podlipnig2003}. However, a single global Zipf distribution is insufficient for edge networks because local populations differ across APs.
 
-\subsection{Partial Observability of Demand}
+We therefore use Zipf popularity with spatial locality. The global popularity distribution controls catalog skew, while node-specific locality changes the relative preference for objects across AP communities. This preserves a standard caching assumption while avoiding the unrealistic conclusion that every AP observes identical demand. The model is still synthetic, and the limitation is explicit, but it allows controlled evaluation of topology-aware placement under reproducible conditions.
 
-The Dartmouth campus WLAN trace provides AP association behavior but not content requests. This is common in mobility datasets, where network-level traces do not include application-layer object identities. A research-level caching study must therefore distinguish between real mobility structure and synthetic demand assumptions. In this paper, the mobility topology is trace-compatible, while content demand is generated using a transparent Zipf-locality model.
+\subsection{Why Local and Global Popularity Are Insufficient}
+
+Local popularity caching is attractive because it is simple and decentralized. Each AP stores its own most likely objects, and no graph information is required. This can improve local hits, but it may waste cooperation opportunities. If neighboring APs store highly overlapping content, the cooperative network provides little additional coverage beyond local caches. Global popularity has the opposite failure mode: it may store globally popular objects everywhere, but this creates high duplication and weak diversity.
+
+The cooperative caching literature shows that coordinated placement can outperform independent caching because neighboring helpers can cover different portions of the catalog \cite{Shanmugam2013,Golrezaei2014JSAC,MaddahAli2014}. In a mobility-derived graph, the same principle applies with an additional constraint: the value of diversity depends on graph distance and perturbation. An object stored at a far or disconnected node may not be useful, while an object duplicated at several strongly related APs may reduce the effective catalog footprint.
+
+\subsection{Perturbation and Relocation}
+
+Edge graphs are not fixed. Nodes may become unavailable because of failure, maintenance, power constraints, or changes in which APs are active in a time window. Edges may weaken because handoff frequency changes or cooperative communication becomes unreliable. A cache placement should therefore be evaluated under perturbed graphs, not only on the nominal topology. This requirement is especially important for IoT deployments where mobility and device participation are variable.
+
+Adaptation is also costly. Replacing cached objects consumes bandwidth and write operations, and frequent rewriting can be impractical for constrained edge nodes. A learning agent that minimizes access cost by constantly changing caches may be operationally unacceptable. This motivates a relocation term and a conservative refinement rule: adaptation should improve objective value without uncontrolled cache churn.
 
 \subsection{Design Requirements}
 
-The challenges above translate into five design requirements:
-\begin{itemize}
-    \item \textbf{Topology awareness}: the policy must reason about which nodes can cooperate cheaply.
-    \item \textbf{Demand locality}: nodes should be allowed to have different content preferences.
-    \item \textbf{Diversity control}: neighboring nodes should not blindly store identical objects.
-    \item \textbf{Perturbation robustness}: placements should be evaluated under graph changes.
-    \item \textbf{Relocation stability}: adaptation should avoid excessive cache rewriting.
-\end{itemize}
+These challenges imply five requirements for a research-level caching method. First, the method must represent cooperation topology explicitly. Second, it must model heterogeneous demand rather than assuming identical local distributions. Third, it must control redundancy so that limited cache capacity is not consumed by avoidable duplication among strongly related nodes. Fourth, it must evaluate robustness under graph perturbation. Fifth, it must distinguish useful adaptation from excessive relocation.
 
 \begin{table}[t]
 \centering

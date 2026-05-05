@@ -16,7 +16,7 @@ The trace-compatible generator is deterministic for a fixed seed. Mobile clients
 
 \subsection{Preprocessing}
 
-Records are sorted by user and timestamp. \texttt{OFF} intervals are removed before graph construction because they represent absence from the WLAN. Consecutive AP changes define handoffs. For each user sequence \(i_1,i_2,\ldots,i_T\), each transition \(i_t\rightarrow i_{t+1}\) with \(i_t\ne i_{t+1}\) increments handoff count \(H_{i_t,i_{t+1}}\). The implementation selects the most active APs and keeps the largest connected component.
+Records are sorted by client and timestamp. \texttt{OFF} intervals are removed before graph construction because they represent absence from the WLAN. Consecutive AP changes define handoffs. For each client sequence \(i_1,i_2,\ldots,i_T\), each transition \(i_t\rightarrow i_{t+1}\) with \(i_t\ne i_{t+1}\) increments handoff count \(H_{i_t,i_{t+1}}\). The evaluation uses the most active APs and keeps the largest connected component.
 
 \begin{table}[t]
 \centering
@@ -52,7 +52,7 @@ The model separates two signals. Global popularity captures the fact that a few 
 
 \begin{table}[t]
 \centering
-\caption{Dataset artifacts produced by the implementation.}
+\caption{Dataset artifacts used by the evaluation pipeline.}
 \label{tab:data_artifacts}
 \begin{tabular}{p{0.38\textwidth}p{0.48\textwidth}}
 \toprule

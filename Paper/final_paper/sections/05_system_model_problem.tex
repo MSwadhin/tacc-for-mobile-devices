@@ -1,14 +1,14 @@
 \section{System Model and Problem Formulation}
 
-\subsection{Network Model}
+\subsection{Network and Content Model}
 
-We consider an IoT edge network with a set of edge nodes \(V\). In the WLAN setting, each node corresponds to an AP-like edge cache. The mobility-derived topology is represented by a weighted graph
+We consider an IoT edge network with a set of edge caching nodes \(V\). In the WLAN setting, each node corresponds to an AP-like edge cache. The mobility-derived cooperation topology is represented by a weighted graph
 \[
 G=(V,E,W),
 \]
-where \(E\) is the set of cooperative relationships and \(W=\{w_{ij}\}\) is the interaction weight matrix. Larger \(w_{ij}\) indicates stronger mobility-induced relation between nodes \(i\) and \(j\), such as frequent handoffs.
+where \(E\) is the set of observed cooperation relationships and \(W=\{w_{ij}\}\) is the interaction weight matrix. A larger \(w_{ij}\) indicates a stronger mobility-induced relationship between nodes \(i\) and \(j\), such as frequent handoffs between the corresponding APs. The graph is used both for cooperative retrieval latency and for redundancy modeling.
 
-The system contains a content catalog \(\mathcal{C}\). Each node \(i\) has cache capacity \(K_i\), measured as number of objects in this implementation. The binary placement variable is
+The system contains a content catalog \(\mathcal{C}\). Each node \(i\) has capacity \(K_i\), measured as the number of objects that can be stored. The binary placement variable is
 \[
 x_{i,c} =
 \begin{cases}
@@ -20,24 +20,27 @@ The capacity constraint is
 \[
 \sum_{c \in \mathcal{C}} x_{i,c} \le K_i, \qquad \forall i \in V.
 \]
+Let \(P_{i,c}\) denote the probability that a request arriving at node \(i\) asks for content \(c\). The demand matrix \(P\) is node-specific, so two APs may have different content preferences even when the global catalog popularity is shared.
 
-\subsection{Perturbed Topology}
+\subsection{Perturbed Cooperation Graph}
 
-Real edge networks are not perfectly stable. We model uncertainty by sampling a perturbed graph
+Real edge cooperation is uncertain. We model this uncertainty by sampling a perturbed graph
 \[
-\tilde{G}=(\tilde{V},\tilde{E},\tilde{W}) \sim \mathcal{P}(G).
+\tilde{G}=(\tilde{V},\tilde{E},\tilde{W}) \sim \mathcal{P}_p(G),
 \]
-In the implementation, nodes are removed with probability \(p\) and edges are removed with probability \(p/2\). The largest connected component is retained for evaluation. This models temporary AP unavailability and loss of cooperative links.
+where \(p\) is the perturbation rate. In the experimental model, nodes are removed with probability \(p\), edges are removed with probability \(p/2\), and the largest connected component is retained for evaluation. Node removal represents temporary AP unavailability, maintenance, failure, or a time window in which an AP does not participate in cooperative caching. Edge removal represents a weakened cooperative relationship or loss of a usable path between APs.
+
+Perturbation changes the value of a placement without changing the placement matrix itself. If a holder node is removed, its cached objects cannot serve active requests. If an edge is removed, shortest paths can become longer or disconnected. If a placement concentrates many useful objects at a few central nodes, it may perform well on the nominal graph but become fragile under node perturbation. If a placement spreads objects more broadly, it may trade nominal precision for perturbation robustness.
 
 \subsection{Access Cost}
 
-Let \(P_{i,c}\) denote the probability that node \(i\) requests content \(c\). Let \(L_{\text{local}}\) be local-cache latency and \(L_{\text{origin}}\) be origin-server latency. Let \(L(i,j)\) be the latency of retrieving content from node \(j\) to node \(i\), computed as a non-decreasing function of shortest-path distance in \(\tilde{G}\). The best non-local retrieval latency is
+Let \(L_{\text{local}}\) be the latency of a local cache hit and \(L_{\text{origin}}\) be the latency of retrieving content from the origin. Let \(L(i,j;\tilde{G})\) be the cooperative retrieval latency from node \(j\) to node \(i\), computed as a non-decreasing function of shortest-path distance in the active perturbed graph. For a request for content \(c\) at node \(i\), the best non-local retrieval latency is
 \[
 A_{i,c}(x,\tilde{G})
 =
 \min\left(
 L_{\text{origin}},
-\min_{\substack{j \in \tilde{V}\\j \ne i\\x_{j,c}=1}} L(i,j)
+\min_{\substack{j \in \tilde{V}\\j \ne i\\x_{j,c}=1}} L(i,j;\tilde{G})
 \right).
 \]
 The expected access cost is
@@ -51,23 +54,28 @@ x_{i,c}L_{\text{local}}+
 (1-x_{i,c})A_{i,c}(x,\tilde{G})
 \right].
 \]
+This term rewards local hits and nearby cooperative hits while penalizing origin misses.
 
 \subsection{Replication, Redundancy, and Relocation}
 
-Replication cost captures the overhead of storing objects:
+Replication cost captures storage and update overhead:
 \[
 C_{\text{rep}}(x,\tilde{G})
 =
 \sum_{i \in \tilde{V}}\sum_{c \in \mathcal{C}}
-\gamma f_c x_{i,c}.
+\gamma f_c x_{i,c},
 \]
-Topology-aware redundancy penalizes storing the same object at strongly related nodes:
+where \(f_c\) is a content-size or content-maintenance factor and \(\gamma\) is the unit replication weight. In the reported experiment, objects are treated uniformly, but the formulation allows heterogeneous objects.
+
+Topology-aware redundancy penalizes storing the same object at strongly related active nodes:
 \[
 C_{\text{red}}(x,\tilde{G})
 =
 \sum_{c \in \mathcal{C}}\sum_{\substack{i,j \in \tilde{V}\\i<j}}
 \tilde{w}_{ij}x_{i,c}x_{j,c}.
 \]
+Duplicate content is not prohibited. Highly popular objects may deserve multiple replicas. The redundancy term instead makes duplication pay a cost proportional to mobility-derived relatedness. Duplicating an object at APs that exchange many users is less useful than duplicating it at weakly related APs, because strong neighbors can often serve one another cooperatively.
+
 Relocation cost measures how much a placement differs from a reference placement \(x^0\):
 \[
 C_{\text{rel}}(x,x^0)
@@ -75,34 +83,29 @@ C_{\text{rel}}(x,x^0)
 \sum_{i \in \tilde{V}}\sum_{c \in \mathcal{C}}
 \delta_c |x_{i,c}-x^0_{i,c}|.
 \]
+This term is important for adaptive caching. Without relocation cost, a learning component could appear to improve access cost by rewriting too much of the cache state. Relocation cost makes cache churn visible in the objective.
 
 \subsection{Optimization Objective}
 
 The stochastic topology-aware cooperative caching problem is
 \[
 \min_x
-\mathbb{E}_{\tilde{G}\sim\mathcal{P}(G)}
+\mathbb{E}_{\tilde{G}\sim\mathcal{P}_p(G)}
 \left[
-C_{\text{access}}
-+ \lambda C_{\text{rep}}
-+ \beta C_{\text{red}}
-+ \mu C_{\text{rel}}
+C_{\text{access}}(x,\tilde{G})
++ \lambda C_{\text{rep}}(x,\tilde{G})
++ \beta C_{\text{red}}(x,\tilde{G})
++ \mu C_{\text{rel}}(x,x^0)
 \right],
 \]
-subject to binary placement and cache-capacity constraints. The objective captures the central trade-off: aggressive replication can reduce origin misses but wastes storage and increases redundancy; conservative placement reduces storage overhead but may increase access cost; frequent relocation adapts to topology changes but may be operationally expensive.
+subject to binary placement and cache-capacity constraints. The parameters \(\lambda\), \(\beta\), and \(\mu\) control the relative importance of replication, redundancy, and relocation. These weights are deployment-dependent: a network with cheap storage may tolerate more replicas, while a network with expensive updates may require stronger relocation control.
 
-\subsection{Interpretation of Objective Terms}
+\subsection{Problem Properties}
 
-Each term in the objective has an operational interpretation. \(C_{\text{access}}\) measures how expensive it is to serve demand after cache placement. A lower access cost means more requests are served locally or by nearby edge nodes rather than by the origin. \(C_{\text{rep}}\) discourages storing too many objects when storage, update, or maintenance overhead matters. \(C_{\text{red}}\) discourages placing the same object at strongly related nodes unless the access-cost benefit justifies it. \(C_{\text{rel}}\) discourages excessive changes relative to a reference placement.
+The placement space is combinatorial. With \(N=|V|\) nodes, \(M=|\mathcal{C}|\) objects, and uniform cache capacity \(K\), the number of feasible placements grows exponentially with \(N\) and \(M\). Even without perturbation or relocation, cooperative placement resembles facility-location and coverage problems, which are known to be computationally challenging in wireless caching settings \cite{Poularakis2014Approx}. Perturbation adds another layer because the value of a placement is an expectation over graph samples rather than a deterministic value on one graph.
 
-The redundancy term deserves special attention. Duplicate content is not always bad: storing a highly popular object at several APs can improve local hit rate. However, duplicate content at strongly related APs can reduce the cooperative footprint, especially when storage is limited. The redundancy term therefore does not prohibit duplication; it makes duplication pay a cost proportional to mobility-derived relatedness.
-
-\subsection{Perturbation Semantics}
-
-In the perturbation model, node removal represents temporary AP unavailability, maintenance, failure, or a mobility window in which an AP does not participate in cooperative caching. Edge removal represents a weakened cooperative relationship or a loss of usable path between APs. After perturbation, the policy is evaluated only on active nodes. If a content object is stored only at removed nodes, it no longer contributes to cooperative service. If edges are removed, shortest-path latency can increase, and some cooperative retrievals may become origin misses.
-
-This semantics makes the evaluation stricter than a static-graph test. A placement that looks good on the nominal graph may fail if it relies too heavily on a few central nodes or narrow cooperative paths. Conversely, a placement with broader diversity may perform better under moderate graph changes because more content remains reachable.
+These properties motivate a hybrid method. Greedy placement provides a structured approximation by repeatedly selecting high marginal-gain node-content pairs. DQN refinement searches a local neighborhood around that greedy solution. Adaptive selection compares policy families under validation perturbations. The method therefore avoids both extremes: it does not rely only on a static heuristic, and it does not require a neural network to discover the entire combinatorial structure from scratch.
 
 \subsection{Policy Families}
 
-The problem formulation supports several policy families. Node-local policies use only \(P_{i,c}\) and ignore \(G\). Global popularity policies use aggregate demand but ignore topology. Diversity-aware policies increase catalog coverage by avoiding identical top-\(K\) placements everywhere. Topology-aware greedy policies optimize the stochastic objective directly. Learning-based policies refine placements based on sampled experience. Adaptive TACC combines policy families by selecting the one that best matches the perturbation regime.
+The formulation supports several policy families. Node-local policies use only \(P_{i,c}\) and ignore \(G\). Global popularity policies use aggregate demand but ignore topology. Diversity-aware policies increase catalog coverage by avoiding identical top-\(K\) placements everywhere. Topology-aware greedy policies optimize the stochastic objective directly. Learning-based policies refine placements based on sampled objective improvements. Adaptive TACC combines policy families by selecting the one that best matches the perturbation regime.

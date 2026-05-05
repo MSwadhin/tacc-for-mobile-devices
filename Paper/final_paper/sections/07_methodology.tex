@@ -1,16 +1,8 @@
 \section{Methodology}
 
-\subsection{Pipeline Overview}
+\subsection{Overview}
 
-The final methodology has six stages:
-\begin{enumerate}
-    \item load a movement trace or deterministic trace-compatible mobility data;
-    \item construct a weighted handoff graph;
-    \item generate Zipf-locality demand;
-    \item compute baseline and topology-aware placements;
-    \item refine greedy placement with DQN;
-    \item select the best policy for the perturbation regime using held-out validation samples.
-\end{enumerate}
+Adaptive TACC is a three-stage policy framework built on top of a mobility-derived graph and a node-specific demand matrix. The first stage constructs candidate placements, including standard baselines and a topology-aware greedy placement. The second stage refines the greedy placement using DQN-based local search. The third stage selects among strong candidate policies using held-out perturbation samples. The method is designed around the observation that different perturbation regimes favor different placement behavior.
 
 \begin{figure}[t]
 \centering
@@ -37,33 +29,47 @@ The final methodology has six stages:
 \draw[arrow] (dqn) -- (selector);
 \draw[arrow] (selector) -- (eval);
 \end{tikzpicture}
-\caption{Adaptive TACC pipeline. The final policy is selected from multiple candidate placements rather than assuming one static policy is best under all perturbation regimes.}
+\caption{Adaptive TACC pipeline. Candidate placements are evaluated under graph perturbation, and the final policy is selected from multiple placement families rather than assuming one static policy is best.}
 \label{fig:pipeline}
 \end{figure}
 
 \subsection{Graph Construction}
 
-The graph is undirected in the implementation. Each AP is a node. Handoff counts between APs are aggregated across users, and each edge stores a raw handoff count, an inverse-count latency weight, and a normalized redundancy weight. Shortest-path distances over latency weights determine cooperative retrieval cost.
+The mobility trace is represented as sequences of AP associations. Consecutive AP changes by the same client create handoff events. Handoff counts are aggregated over all clients to form a weighted undirected graph. Each edge stores a raw handoff count, a normalized redundancy weight, and an inverse-count latency weight. Frequent handoffs therefore imply strong relatedness and low cooperative retrieval cost. The largest active component is used for evaluation so that cooperative retrieval is defined over a connected graph.
+
+This graph construction makes the cooperation topology data-dependent. Two APs are adjacent because clients move between them, not because a fixed radius or manually chosen neighborhood says they should cooperate. The resulting topology captures the behavioral structure that is relevant for caching: where demand may migrate and where cooperative retrieval is likely to be useful.
+
+\subsection{Demand Construction}
+
+Content demand is generated using a global Zipf distribution and AP-level locality. Let \(q_c\propto c^{-\alpha}\) denote global catalog popularity. For each AP community, a subset of objects receives a locality boost, after which probabilities are normalized to produce \(P_{i,c}\). This creates demand distributions that share a global popularity shape but differ across APs. The locality multiplier controls how strongly node demand deviates from the global distribution.
+
+This demand model is not intended to replace real content logs. It is a controlled way to evaluate caching behavior when the mobility trace contains association events but not object requests. The model also supports a meaningful comparison among local popularity, global popularity, diversified placement, and topology-aware placement because the policies face both common popular objects and location-specific preferences.
 
 \subsection{Topology Perturbation}
 
-For perturbation rate \(p\), each node is removed with probability \(p\), and each edge is removed with probability \(p/2\). The largest connected component is retained. This perturbation model is simple, but it gives a controlled way to test robustness and policy selection as topology becomes less stable.
+For perturbation rate \(p\), each node is removed with probability \(p\), and each edge is removed with probability \(p/2\). The largest connected component is retained. This sampler creates progressively less stable cooperative graphs while preserving enough structure for evaluation. Candidate policies are evaluated over repeated samples so that objective mean and variance can be measured.
+
+The perturbation model is intentionally simple, but it isolates an important effect. A placement optimized for the nominal graph may rely on central nodes or short paths that disappear under perturbation. A more diverse placement may survive moderate perturbation better because more objects remain reachable. The selector uses this difference to choose among candidate policies.
+
+\subsection{Baseline Policies}
+
+The baseline set is designed to avoid weak comparisons. Random placement measures the value of unstructured diversity. Local popularity measures independent AP optimization. Global popularity measures the effect of storing the same popular objects everywhere. Diversified popularity shifts popular-object slices across APs to increase cooperative catalog coverage. Topology-aware greedy measures direct optimization of the proposed objective. Greedy plus DQN measures learning-based refinement around a structured warm start. Adaptive TACC measures regime-aware selection among strong candidates.
 
 \subsection{Topology-Aware Greedy Placement}
 
-The greedy algorithm starts with an empty placement and repeatedly adds the feasible node-content pair with largest expected objective reduction. Candidate gains are estimated over sampled perturbed graphs:
+The greedy algorithm starts with an empty placement and repeatedly adds the feasible node-content pair with the largest expected objective reduction. Candidate gains are estimated over sampled perturbed graphs:
 \[
 \Delta(i,c|x)=
-\mathbb{E}_{\tilde{G}\sim\mathcal{P}(G)}
-\left[J(x,\tilde{G})-J(x^{(i,c)},\tilde{G})\right].
+\mathbb{E}_{\tilde{G}\sim\mathcal{P}_p(G)}
+\left[J(x,\tilde{G})-J(x^{(i,c)},\tilde{G})\right],
 \]
-To keep runtime practical, candidate contents are limited to high-demand objects at each node.
+where \(x^{(i,c)}\) is the placement obtained by adding content \(c\) to node \(i\). Candidate contents are restricted to high-demand objects at each node to keep marginal-gain evaluation tractable.
 
 \begin{algorithm}[t]
 \caption{Topology-Aware Greedy Placement}
 \label{alg:greedy_final}
 \begin{algorithmic}[1]
-\Require Graph \(G\), demand \(P\), capacity \(K\), perturbation sampler \(\mathcal{P}\)
+\Require Graph \(G\), demand \(P\), capacity \(K\), perturbation sampler \(\mathcal{P}_p\)
 \State Initialize placement \(x\gets 0\)
 \While{some node has free cache capacity}
     \State bestGain \(\gets 0\), bestPair \(\gets \varnothing\)
@@ -84,15 +90,16 @@ To keep runtime practical, candidate contents are limited to high-demand objects
 
 \subsection{DQN Refinement}
 
-The DQN state concatenates the binary cache placement matrix, the demand matrix, and graph features. Graph features include normalized degree, weighted degree, and closeness centrality. The action space is a node-content toggle. If adding an object to a full cache, the lowest-demand cached object at that node is evicted. The reward is objective improvement:
+The DQN refiner treats cache modification as a local sequential decision problem. The state concatenates the binary placement matrix, the demand matrix, and graph features. Graph features include normalized degree, weighted degree, and closeness centrality. The action space is a node-content toggle. If adding an object to a full cache would violate capacity, the lowest-demand cached object at that node is evicted. The reward is objective improvement:
 \[
 r_t=J(x_t,\tilde{G}_t)-J(x_{t+1},\tilde{G}_t).
 \]
-The network has two hidden layers with ReLU activations, replay-buffer sampling, a target network, discount factor 0.92, learning rate 0.001, and epsilon-greedy exploration. During inference, a DQN action is accepted only if it improves the measured objective. This preserves the greedy warm start and bounds harmful relocation.
+
+The DQN uses two hidden layers with ReLU activations, replay-buffer sampling, a target network, discount factor 0.92, learning rate 0.001, and epsilon-greedy exploration. During inference, an action is accepted only if it improves the measured objective. This accepted-action rule is critical because it prevents the learned component from degrading the greedy warm start. In effect, the neural network proposes local modifications, and the objective acts as a safety filter.
 
 \subsection{Adaptive TACC Selector}
 
-The experiments reveal that the best placement type depends on perturbation rate. Adaptive TACC therefore selects among diversified popularity, topology-aware greedy, and DQN-refined greedy. For each candidate policy, it evaluates held-out perturbation samples and computes a selector score:
+Adaptive TACC selects among diversified popularity, topology-aware greedy, and DQN-refined greedy. For each candidate policy, it evaluates held-out perturbation samples and computes a selector score:
 \[
 S(\pi)=\bar{J}_{\text{val}}(\pi)+0.5\sigma_{\text{val}}(\pi)+\rho(p)R(\pi),
 \]
@@ -100,7 +107,6 @@ where \(\bar{J}_{\text{val}}\) is validation objective, \(\sigma_{\text{val}}\) 
 \[
 \pi^*=\arg\min_{\pi}S(\pi).
 \]
-This selector gives the final method a research-level answer to RQ4: it adapts across regimes instead of forcing one static cache-placement policy to serve all topology conditions.
 
 \begin{algorithm}[t]
 \caption{Adaptive TACC Policy Selection}
@@ -118,18 +124,8 @@ This selector gives the final method a research-level answer to RQ4: it adapts a
 \end{algorithmic}
 \end{algorithm}
 
-\subsection{Why Selection Is Part of the Method}
-
-It may be tempting to treat the adaptive selector as an evaluation trick, but it is part of the caching method. In an operational edge system, the controller can estimate whether the current topology is stable, moderately perturbed, or highly volatile. A policy that maximizes coverage during moderate perturbation may be too replication-heavy under high churn, while a conservative placement may leave useful diversity unused under stable conditions. The selector encodes this operating-regime awareness explicitly.
-
 \subsection{Computational Complexity}
 
-The greedy stage is the most expensive deterministic component. If there are \(N\) nodes, \(M\) content objects, cache capacity \(K\), and \(S\) perturbation samples per marginal evaluation, a naive greedy implementation can require \(O(NKMNS)\) objective evaluations. The implementation reduces this cost by considering only high-demand candidate objects at each node and by using a small number of perturbation samples during greedy construction. This is appropriate for the target scale of the experiment and keeps the method reproducible on a normal workstation.
+The greedy stage is the most expensive deterministic component. If there are \(N\) nodes, \(M\) content objects, cache capacity \(K\), and \(S\) perturbation samples per marginal evaluation, naive greedy search can require \(O(NKMNS)\) objective evaluations. Candidate filtering reduces the effective value of \(M\) by considering only high-demand objects at each node. The DQN action space has size \(NM\), and training cost scales with the number of episodes, steps per episode, and minibatch size. Since DQN starts from the greedy placement, it does not need to learn an entire placement from an empty cache state.
 
-The DQN stage has action space \(NM\), because each action toggles one node-content pair. The state vector contains the placement matrix, demand matrix, and graph features. Training cost depends on the number of episodes, steps per episode, and mini-batch size. Since DQN starts from the greedy placement, it does not need to learn the entire placement from scratch. This makes the learning stage a local refiner rather than a full combinatorial optimizer.
-
-The adaptive selector adds validation overhead, but only for a small set of candidate policies. In this study, the selector compares diversified popularity, topology-aware greedy, and DQN-refined greedy. This cost is small compared with training the DQN and constructing the greedy placement. More policies could be added, but each additional candidate increases validation cost.
-
-\subsection{Why the Results Are Plausible}
-
-The expected behavior of the policies follows directly from the objective. Global popularity should perform poorly because it duplicates the same content everywhere and provides little cooperative diversity. Local popularity should have a higher local hit ratio but lower cooperative hit ratio because each AP ignores neighboring caches. Diversified placement should perform well when reachability is good because it increases the number of distinct objects available in the cooperative graph. Topology-aware greedy should perform well when the graph structure is reliable because it explicitly optimizes access and redundancy. DQN-refined greedy should improve greedy when small replacements reduce objective without excessive relocation. Adaptive TACC should perform best when different perturbation regimes favor different candidate policies. The measured results follow these expectations.
+The selector adds validation overhead for a small set of candidate policies. This overhead is modest compared with greedy construction and DQN training, but it is methodologically important because it prevents the evaluation from forcing one static policy to represent all perturbation regimes.
