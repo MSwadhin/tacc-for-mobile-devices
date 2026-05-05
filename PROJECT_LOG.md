@@ -88,6 +88,7 @@ Complete the project described in `goal.txt`: analyze the existing report and PD
 - 2026-05-05: Converted the final paper to IEEEtran draft format with `newtxtext` and `newtxmath` fonts. The active entry point is `Paper/final_paper/main.tex`.
 - 2026-05-05: Added high-level clarification text answering the study goal, how the algorithm adapts, and what changes under graph perturbation. Expanded related work with additional caching, MEC, and small-cell caching papers.
 - 2026-05-05: Added an extended methodological-clarification appendix so the paper better explains the reasoning behind Adaptive TACC, selector behavior, perturbation semantics, sanity checks, and reproducibility protocol.
+- 2026-05-05: Checked recent references in `Paper/final_paper/reference.bib` against active citations. Added missing 2025 citations for collaborative edge intelligence and LEO satellite-assisted edge caching to the final paper, and removed an incomplete duplicate Jiang 2026 BibTeX entry because the complete `jiang2026cooperative` entry is cited.
 
 ## Progress Ledger
 
