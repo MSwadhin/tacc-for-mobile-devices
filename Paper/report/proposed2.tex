@@ -1,0 +1,73 @@
+\section{Proposed Methodology for Phase 2}
+
+In Phase 2, we implement and evaluate topology-aware cooperative caching over a mobility-derived static graph using synthetic workloads. The methodology consists of four main components: (i) graph construction, (ii) workload generation and trace-driven simulation, (iii) baseline implementation, and (iv) topology-aware policy design.
+
+\subsection{Graph Construction}
+
+We construct a static edge network graph from Wi-Fi mobility traces. Each access point (AP) is modeled as a node in the network. If users transition between AP $i$ and AP $j$, we increment the edge weight between them. After aggregating transitions over the dataset, we obtain:
+
+\[
+G = (V, E, W),
+\]
+
+where $W(i,j)$ reflects the normalized frequency of user handoffs. This graph encodes mobility-induced structural relationships among edge nodes.
+
+\subsection{Synthetic Workload Generation}
+
+Since mobility traces do not include content identifiers, we generate synthetic request streams for each node. The workload incorporates:
+
+\begin{itemize}
+    \item Zipf-like global popularity distribution,
+    \item Spatial locality (node-specific demand skew),
+    \item Temporal variation in request rates.
+\end{itemize}
+
+Each request is represented as:
+\[
+r_k = (t_k, v_k, c_k, s_k),
+\]
+where $v_k$ is the serving node determined by mobility association, $c_k$ is the requested content, and $s_k$ is the content size.
+
+\subsection{Trace-Driven Simulation}
+
+We perform a discrete-event simulation in chronological order of requests. For each request:
+
+\begin{enumerate}
+    \item If content is in the local cache, record a local hit.
+    \item Otherwise, check neighboring nodes within a predefined cooperation radius.
+    \item If unavailable, fetch from the origin and record backhaul cost.
+\end{enumerate}
+
+Latency and traffic metrics are recorded for evaluation. Cache updates occur either per request (for LRU/LFU) or at fixed time windows (for learning-based methods).
+
+\subsection{Baseline Policies}
+
+We implement three baseline categories:
+
+\begin{itemize}
+    \item Node-local caching (LRU, LFU),
+    \item Heuristic cooperative caching,
+    \item Local popularity-based learning.
+\end{itemize}
+
+\subsection{Topology-Aware Cooperative Policy}
+
+We design a graph-based policy that jointly determines cache placement using structural information from $G$. Given node features $x_i$, a graph learning model computes node representations:
+
+\[
+h_i = \mathrm{GNN}(G, X)_i.
+\]
+
+For each content $c$, a scoring function $s_{i,c} = f(h_i, e_c)$ determines its priority at node $i$. Each node caches the top-$K$ items under capacity constraints. This approach enables decentralized yet topology-aware coordination.
+
+\subsection{Evaluation}
+
+All methods are evaluated under identical simulation settings using:
+
+\begin{itemize}
+    \item Cache Hit Ratio (CHR),
+    \item Average latency,
+    \item Backhaul traffic volume,
+    \item Redundancy and cache diversity metrics,
+    \item Scalability with respect to network size and cache capacity.
+\end{itemize}

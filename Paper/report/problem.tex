@@ -1,0 +1,143 @@
+\section{Problem Formulation}
+
+Edge caching plays a central role in enabling low-latency and bandwidth-efficient data delivery in IoT-driven edge networks. In such systems, multiple edge nodes—such as access points, gateways, or small cells—serve mobile users whose content demands evolve over time and space. Due to user mobility and spatial locality, request patterns observed at different edge nodes are not independent; instead, they exhibit structured correlations induced by movement and shared environments.
+
+Despite these dependencies, most existing caching strategies operate either independently at each node or rely on static cooperation mechanisms. As a result, caching decisions often fail to adapt to mobility-driven demand shifts and dynamic inter-node relationships. This motivates a reformulation of cooperative caching as a topology-aware, time-evolving optimization problem.
+
+\subsection{System Model}
+
+Consider an edge network consisting of a set of nodes:
+
+\begin{equation}
+V = \{v_1, v_2, ..., v_N\}.
+\end{equation}
+
+Each node $v_i$ is equipped with a cache of finite capacity $C_i$. Let $\mathcal{C}$ denote the global content catalog.
+
+Time is divided into discrete intervals $t = 1, 2, ..., T$. At each time interval $t$, node $v_i$ receives a set of content requests characterized by a stochastic demand distribution $D_i^t$.
+
+Due to user mobility and spatial correlation, demand distributions across nodes are not independent. Instead, there exists a time-varying interaction structure among nodes that can be represented as a weighted graph:
+
+\begin{equation}
+G_t = (V, E_t, W_t),
+\end{equation}
+
+where:
+
+\begin{itemize}
+    \item $E_t \subseteq V \times V$ captures inter-node relationships,
+    \item $W_t(i,j)$ quantifies the strength of interaction or mobility-induced correlation between nodes $v_i$ and $v_j$.
+\end{itemize}
+
+This graph evolves over time as mobility and demand patterns change.
+
+\subsection{Cache Dynamics}
+
+At each time interval $t$, node $v_i$ maintains a cache state:
+
+\begin{equation}
+\mathcal{K}_i^t \subseteq \mathcal{C},
+\end{equation}
+
+subject to the capacity constraint:
+
+\begin{equation}
+\sum_{c \in \mathcal{K}_i^t} s(c) \leq C_i,
+\end{equation}
+
+where $s(c)$ denotes the size of content $c$.
+
+When a request for content $c$ arrives at node $v_i$, it is served:
+
+\begin{itemize}
+    \item Locally if $c \in \mathcal{K}_i^t$,
+    \item From a neighboring node if available,
+    \item Otherwise from the origin server, incurring higher latency and backhaul cost.
+\end{itemize}
+
+\subsection{Limitations of Existing Formulations}
+
+Classical caching policies define a local decision rule:
+
+\begin{equation}
+\mathcal{K}_i^{t+1} = \pi_{\text{local}}(D_i^t, \mathcal{K}_i^t),
+\end{equation}
+
+which depends solely on local demand history.
+
+Heuristic cooperative policies extend this to include limited neighbor information:
+
+\begin{equation}
+\mathcal{K}_i^{t+1} =
+\pi_{\text{heuristic}} \left( D_i^t, \{\mathcal{K}_j^t\}_{j \in \mathcal{N}(i)} \right),
+\end{equation}
+
+where $\mathcal{N}(i)$ is a predefined neighborhood set.
+
+However, these approaches assume either independence or static neighbor structures and do not explicitly learn from the evolving topology $G_t$.
+
+\subsection{Topology-Aware Cooperative Caching Problem}
+
+We define the topology-aware cooperative caching problem as follows.
+
+\textbf{Given:}
+\begin{itemize}
+    \item A time-varying graph $\{G_t\}_{t=1}^{T}$,
+    \item Time-varying demand distributions $\{D_i^t\}$,
+    \item Cache capacity constraints $\{C_i\}$,
+\end{itemize}
+
+\textbf{Find a policy}
+
+\begin{equation}
+\pi : (G_t, \{D_i^t\}, \{\mathcal{K}_i^t\})
+\rightarrow
+\{\mathcal{K}_i^{t+1}\},
+\end{equation}
+
+that jointly determines cache updates across nodes.
+
+The objective is to optimize long-term system performance:
+
+\begin{equation}
+\max_{\pi}
+\; \mathbb{E}
+\left[
+\sum_{t=1}^{T}
+\sum_{i=1}^{N}
+U_i^t
+\right],
+\end{equation}
+
+where $U_i^t$ is a utility function that captures:
+
+\begin{itemize}
+    \item Cache hit ratio,
+    \item Request latency,
+    \item Backhaul traffic cost,
+    \item Redundancy penalty across neighboring caches.
+\end{itemize}
+
+\subsection{Research Objective}
+
+The central research objective is to determine whether explicitly incorporating the time-varying topology $G_t$ into the caching policy $\pi$ leads to measurable improvements in:
+
+\begin{itemize}
+    \item System-wide cache efficiency,
+    \item Latency reduction under mobility,
+    \item Reduction of redundant content replication,
+    \item Adaptability to non-stationary demand.
+\end{itemize}
+
+In particular, we seek policies that:
+
+\begin{itemize}
+    \item Exploit mobility-induced demand correlations,
+    \item Adapt to dynamic inter-node relationships,
+    \item Scale with network size,
+    \item Operate under realistic storage constraints.
+\end{itemize}
+
+\subsection{Summary}
+
+We study cooperative edge caching in dynamic IoT environments as a time-evolving, topology-aware optimization problem, where cache placement decisions must jointly adapt to mobility-induced demand correlations and storage constraints to maximize system-level performance.

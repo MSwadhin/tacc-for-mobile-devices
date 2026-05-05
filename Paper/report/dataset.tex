@@ -1,0 +1,49 @@
+\section{Dataset}
+
+The intended real-world mobility source is the CRAWDAD Dartmouth Campus Wi-Fi dataset. The current official Dartmouth author page describes the 2009 release as a dataset containing syslog, SNMP, and tcpdump data for more than five years, covering more than 450 access points and several thousand users at Dartmouth College \cite{kotz_dartmouth_campus_2009}. Earlier Dartmouth releases and papers report detailed AP association and handoff traces collected between 2001 and 2004, and these traces have been widely used for campus-scale WLAN mobility modeling \cite{Kotz2004Dartmouth,kim2005mobility_wifi_ap}. The dataset is appropriate for this project because edge nodes can be represented by access points, and user movement among APs naturally induces the cooperative caching topology.
+
+\subsection{Access and Reproducibility}
+
+The implementation includes \texttt{scripts/download\_dataset.py}, which records official dataset landing pages and writes a local access note in \texttt{data/raw/dartmouth\_access/ACCESS\_NOTE.txt}. During this run, legacy direct CRAWDAD download paths for the movement archive returned HTTP 404, while the official author page points to IEEE DataPort. Because raw archive download may require browser interaction, account access, or DataPort terms acceptance, the repository also provides a deterministic trace-compatible fallback generator. This fallback is not presented as the original Dartmouth data; it is used to make the full pipeline executable when the raw trace is unavailable locally.
+
+The fallback trace is saved as \texttt{data/raw/dartmouth\_movement.csv} with columns \texttt{user\_id}, \texttt{timestamp}, and \texttt{ap}. A sidecar metadata file marks the trace as synthetic. The generated trace preserves the operational structure needed by the methodology: users repeatedly associate with named APs, transition among nearby AP clusters, occasionally leave the network through an \texttt{OFF} state, and produce ordered AP sequences from which handoffs can be extracted.
+
+\subsection{Preprocessing}
+
+The preprocessing stage accepts any movement trace with the same three-column format. Records are sorted by user and timestamp. \texttt{OFF} intervals are removed before graph construction because they represent absence from the WLAN rather than a cache-serving edge node. Consecutive repeated AP observations are collapsed implicitly: only transitions where the AP changes contribute to the handoff count. For a user sequence
+\[
+i_1, i_2, \ldots, i_T,
+\]
+each adjacent transition \(i_t \rightarrow i_{t+1}\), where \(i_t \neq i_{t+1}\), increments a handoff counter \(H_{i_t,i_{t+1}}\). This follows WLAN mobility work that models mobility at the AP association level rather than requiring exact physical paths \cite{kim2005mobility_wifi_ap,shin2004neighbor_graphs}.
+
+For computational tractability in the local experiment, the implementation selects the most active APs and keeps the largest connected component. The final run used 20 AP nodes and 190 weighted edges from 25,600 generated association records. This graph is dense enough to support cooperative retrieval and small enough for repeated greedy and DQN evaluation.
+
+\begin{table}[t]
+\centering
+\caption{Dataset and graph statistics for the reproducible run included with the repository.}
+\label{tab:dataset_stats}
+\begin{tabular}{lr}
+\toprule
+Property & Value \\
+\midrule
+Movement records & 25,600 \\
+Selected AP nodes & 20 \\
+Weighted mobility edges & 190 \\
+Content catalog size & 48 \\
+Cache capacity per node & 5 objects \\
+Zipf skew parameter \(\alpha\) & 0.85 \\
+Spatial locality multiplier & 2.8 \\
+Synthetic fallback used & Yes \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Synthetic Content Demand}
+
+The Dartmouth movement traces do not contain content request logs. Therefore, content demand is synthesized while preserving two common properties of edge workloads: skewed content popularity and spatial locality. Global content popularity follows a Zipf distribution, a standard model for web and content caching workloads \cite{breslau1999zipf,Podlipnig2003}. For catalog rank \(r\), global popularity is
+\[
+p_r = \frac{r^{-\alpha}}{\sum_{k=1}^{M} k^{-\alpha}},
+\]
+where \(M\) is the catalog size and \(\alpha\) controls skew. Node-specific demand then applies a locality multiplier to content groups associated with the node's AP cluster and renormalizes the distribution. This makes nearby APs partially correlated while still retaining global popularity pressure, which is important for evaluating both redundancy and diversity.
+
+The demand model is intentionally controlled. Since real content requests are unavailable, every result should be interpreted as trace-structured simulation rather than direct measurement of Dartmouth user content preferences. The advantage of this design is that cache policies can be compared under identical seeds, catalog sizes, cache capacities, and perturbation rates.

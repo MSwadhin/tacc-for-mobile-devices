@@ -1,0 +1,11 @@
+\section{Limitations and Threats to Validity}
+
+The main external-validity limitation is dataset access. The intended source is the Dartmouth/CRAWDAD campus trace, but direct legacy movement-trace download was not available during this implementation. The included results therefore use a deterministic trace-compatible fallback. This fallback is useful for reproducibility and for validating the pipeline, but it cannot replace a final evaluation on the raw Dartmouth archive. The implementation records this clearly in metadata so that the same scripts can be rerun once the raw trace is available.
+
+A second limitation is the absence of real content request logs. The Zipf-locality demand model is research-backed and common in caching studies, but it remains synthetic. Different content skew, burstiness, and temporal locality assumptions may change the relative strength of local popularity, diversity-aware placement, and topology-aware learning. This is why the experiment records the Zipf parameter, locality multiplier, catalog size, and random seed.
+
+A third limitation is scale. The final local run uses 20 AP nodes and 48 content objects. This is enough to exercise the combinatorial placement problem and generate meaningful comparisons, but larger campus-scale graphs would require additional engineering. Possible extensions include candidate pruning, batched objective evaluation, graph neural state encoders, and distributed policy execution.
+
+A fourth limitation concerns the adaptive selector. The selector uses held-out perturbation samples and a volatility penalty to choose among candidate policies. This is realistic when the operator can estimate current AP availability or graph churn, but it assumes that validation perturbations resemble the test regime. If the perturbation process changes abruptly, the selector may choose a suboptimal candidate. The report therefore presents both component policies and the adaptive selector rather than hiding the underlying trade-offs.
+
+Despite these limitations, the final artifacts close the main gaps in the original draft: the problem is formally specified, the methodology is executable, the results are measured rather than asserted, and the report distinguishes real-data intent from fallback simulation.

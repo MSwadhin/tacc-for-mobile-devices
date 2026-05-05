@@ -1,0 +1,32 @@
+{
+  "nodes": 20,
+  "edges": 190,
+  "trace_rows": 25600,
+  "used_synthetic_fallback": true,
+  "top_global_content_probability": 0.17143528163433075,
+  "runtime_seconds": 145.4993588924408,
+  "training_stats": {
+    "training_loss": 0.012335323728621006,
+    "nominal_objective": 2.413921349975745
+  },
+  "config": {
+    "trace_path": "data/raw/dartmouth_movement.csv",
+    "output_dir": "results/final",
+    "seed": 11,
+    "max_nodes": 20,
+    "catalog_size": 48,
+    "cache_capacity": 5,
+    "zipf_alpha": 0.85,
+    "locality_strength": 2.8,
+    "greedy_samples": 2,
+    "eval_samples": 12,
+    "perturbation_rates": [
+      0.0,
+      0.05,
+      0.1,
+      0.15
+    ],
+    "dqn_episodes": 85,
+    "dqn_steps": 16
+  }
+}

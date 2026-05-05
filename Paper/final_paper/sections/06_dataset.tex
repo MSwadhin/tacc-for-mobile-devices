@@ -1,0 +1,67 @@
+\section{Dataset and Demand Construction}
+
+\subsection{Intended Dartmouth Dataset}
+
+The intended real-world source is the CRAWDAD Dartmouth campus WLAN dataset. The current official Dartmouth page describes the 2009 release as containing more than five years of syslog, SNMP, and tcpdump traces from a campus deployment with more than 450 APs and several thousand users \cite{kotz_dartmouth_campus_2009}. Earlier Dartmouth releases and studies have been widely used for AP-level WLAN mobility modeling \cite{Kotz2004Dartmouth,kim2005mobility_wifi_ap}.
+
+During implementation, legacy direct CRAWDAD movement-trace URLs were unavailable through unauthenticated download, while the official page points to IEEE DataPort. The repository therefore records the official source pages and an access note under \texttt{data/raw/dartmouth\_access/}. The raw dataset is not redistributed.
+
+\subsection{Trace-Compatible Fallback}
+
+To keep the project executable, the implementation provides a deterministic trace-compatible fallback saved as \texttt{data/raw/dartmouth\_movement.csv}. It has columns \texttt{user\_id}, \texttt{timestamp}, and \texttt{ap}. A sidecar metadata file marks it as synthetic. The fallback simulates users moving among AP clusters, occasionally entering an \texttt{OFF} state, and producing ordered AP association sequences.
+
+This fallback is not claimed to be the Dartmouth raw trace. It is a reproducibility device that allows the complete graph-construction, caching, and evaluation pipeline to run when the raw archive is unavailable locally.
+
+The fallback generator is deterministic for a fixed seed. Users are assigned to AP communities, remain mostly within a home community, occasionally move to neighboring communities, and sometimes disconnect through the \texttt{OFF} state. This creates community structure and nonuniform handoff counts, two properties needed for meaningful graph-aware caching evaluation.
+
+\subsection{Preprocessing}
+
+Records are sorted by user and timestamp. \texttt{OFF} intervals are removed before graph construction because they represent absence from the WLAN. Consecutive AP changes define handoffs. For each user sequence \(i_1,i_2,\ldots,i_T\), each transition \(i_t\rightarrow i_{t+1}\) with \(i_t\ne i_{t+1}\) increments handoff count \(H_{i_t,i_{t+1}}\). The implementation selects the most active APs and keeps the largest connected component.
+
+\begin{table}[t]
+\centering
+\caption{Dataset and graph statistics for the final reproducible run.}
+\label{tab:dataset_stats}
+\begin{tabular}{lr}
+\toprule
+Property & Value \\
+\midrule
+Movement records & 25,600 \\
+Selected AP nodes & 20 \\
+Weighted mobility edges & 190 \\
+Content catalog size & 48 \\
+Cache capacity per node & 5 objects \\
+Zipf skew parameter \(\alpha\) & 0.85 \\
+Spatial locality multiplier & 2.8 \\
+Synthetic fallback used & Yes \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\input{generated/fig_mobility_graph}
+
+\subsection{Synthetic Content Demand}
+
+Because the movement trace does not contain content request identities, demand is synthesized. Global popularity follows a Zipf distribution:
+\[
+p_r=\frac{r^{-\alpha}}{\sum_{k=1}^{M} k^{-\alpha}},
+\]
+where \(r\) is content rank, \(M\) is catalog size, and \(\alpha\) controls skew. Node-level demand then applies an AP-cluster locality multiplier and renormalizes the distribution. This produces correlated but non-identical demand across neighboring APs, which is necessary for evaluating redundancy and diversity.
+
+The model separates two signals. Global popularity captures the fact that a few objects are requested much more often than most objects. Spatial locality captures the fact that different APs or buildings may have different dominant interests. Without locality, global top-\(K\) caching would be unrealistically strong. Without global popularity, the workload would not reflect content-delivery systems. The Zipf-locality mixture gives a controlled middle ground.
+
+\begin{table}[t]
+\centering
+\caption{Dataset artifacts produced by the implementation.}
+\label{tab:data_artifacts}
+\begin{tabular}{p{0.38\textwidth}p{0.48\textwidth}}
+\toprule
+Artifact & Purpose \\
+\midrule
+\texttt{data/raw/dartmouth\_access/ACCESS\_NOTE.txt} & Documents official dataset access constraints. \\
+\texttt{data/raw/dartmouth\_movement.csv} & Trace-compatible movement data used by the executable pipeline. \\
+\texttt{data/raw/dartmouth\_movement.csv.metadata.json} & Marks whether the movement file is synthetic fallback data. \\
+\texttt{results/final/run\_metadata.json} & Records graph size, configuration, runtime, and fallback status. \\
+\bottomrule
+\end{tabular}
+\end{table}

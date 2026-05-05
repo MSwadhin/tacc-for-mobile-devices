@@ -1,0 +1,48 @@
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[x=1cm,y=1cm]
+\draw[->] (0.7,0.55) -- (7.6,0.55) node[right] {Perturbation rate};
+\draw[->] (0.7,0.55) -- (0.7,3.1) node[above] {Objective};
+\node[below] at (1.00,0.55) {0.00};
+\node[below] at (3.00,0.55) {0.05};
+\node[below] at (5.00,0.55) {0.10};
+\node[below] at (7.00,0.55) {0.15};
+\draw[gray, thick] (1.00,1.38) -- (3.00,1.45) -- (5.00,1.51) -- (7.00,1.54);
+\fill[gray] (1.00,1.38) circle (1.6pt);
+\fill[gray] (3.00,1.45) circle (1.6pt);
+\fill[gray] (5.00,1.51) circle (1.6pt);
+\fill[gray] (7.00,1.54) circle (1.6pt);
+\draw[gray, thick] (7.9,0.80) -- (8.35,0.80);
+\node[right] at (8.4,0.80) {Random};
+\draw[blue, thick] (1.00,2.85) -- (3.00,2.81) -- (5.00,2.78) -- (7.00,2.79);
+\fill[blue] (1.00,2.85) circle (1.6pt);
+\fill[blue] (3.00,2.81) circle (1.6pt);
+\fill[blue] (5.00,2.78) circle (1.6pt);
+\fill[blue] (7.00,2.79) circle (1.6pt);
+\draw[blue, thick] (7.9,1.25) -- (8.35,1.25);
+\node[right] at (8.4,1.25) {Local Popularity};
+\draw[orange, thick] (1.00,0.80) -- (3.00,0.91) -- (5.00,0.87) -- (7.00,1.17);
+\fill[orange] (1.00,0.80) circle (1.6pt);
+\fill[orange] (3.00,0.91) circle (1.6pt);
+\fill[orange] (5.00,0.87) circle (1.6pt);
+\fill[orange] (7.00,1.17) circle (1.6pt);
+\draw[orange, thick] (7.9,1.70) -- (8.35,1.70);
+\node[right] at (8.4,1.70) {Diversified Popularity};
+\draw[teal, thick] (1.00,0.78) -- (3.00,0.98) -- (5.00,1.03) -- (7.00,1.15);
+\fill[teal] (1.00,0.78) circle (1.6pt);
+\fill[teal] (3.00,0.98) circle (1.6pt);
+\fill[teal] (5.00,1.03) circle (1.6pt);
+\fill[teal] (7.00,1.15) circle (1.6pt);
+\draw[teal, thick] (7.9,2.15) -- (8.35,2.15);
+\node[right] at (8.4,2.15) {Topology-Aware Greedy};
+\draw[red, thick] (1.00,0.75) -- (3.00,0.91) -- (5.00,0.87) -- (7.00,1.13);
+\fill[red] (1.00,0.75) circle (1.6pt);
+\fill[red] (3.00,0.91) circle (1.6pt);
+\fill[red] (5.00,0.87) circle (1.6pt);
+\fill[red] (7.00,1.13) circle (1.6pt);
+\draw[red, thick] (7.9,2.60) -- (8.35,2.60);
+\node[right] at (8.4,2.60) {Adaptive TACC Selector};
+\end{tikzpicture}
+\caption{Objective value under topology perturbation. Adaptive TACC selects among diversity-aware placement, topology-aware greedy, and DQN-refined greedy using held-out perturbation samples and a high-churn volatility penalty.}
+\label{fig:objective_perturbation}
+\end{figure}

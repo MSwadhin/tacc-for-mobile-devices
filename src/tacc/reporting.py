@@ -1,0 +1,116 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+import pandas as pd
+
+
+DISPLAY_NAMES = {
+    "random": "Random",
+    "local_popularity": "Local Popularity",
+    "global_popularity": "Global Popularity",
+    "diversified_popularity": "Diversified Popularity",
+    "topology_greedy": "Topology-Aware Greedy",
+    "hybrid_dqn": "Greedy + DQN Refinement",
+    "adaptive_tacc": "Adaptive TACC Selector",
+}
+
+
+def write_latex_assets(summary: pd.DataFrame, output_dir: Path) -> None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    best_rate = summary["perturbation_rate"].min()
+    table_df = summary[summary["perturbation_rate"] == best_rate].copy()
+    table_df = table_df.sort_values("objective")
+
+    table_lines = [
+        "\\begin{table}[t]",
+        "\\centering",
+        "\\caption{Measured performance at the lowest perturbation setting. Lower objective and access cost are better; higher hit ratio is better.}",
+        "\\label{tab:measured_results}",
+        "\\begin{tabular}{lrrrr}",
+        "\\toprule",
+        "Policy & Objective & Access Cost & Hit Ratio & Relocation \\\\",
+        "\\midrule",
+    ]
+    for _, row in table_df.iterrows():
+        name = DISPLAY_NAMES.get(row["policy"], row["policy"])
+        objective = f"{row['objective']:.3f}"
+        if "objective_std" in row and not pd.isna(row["objective_std"]):
+            objective = f"{row['objective']:.3f}$\\pm${row['objective_std']:.3f}"
+        table_lines.append(
+            f"{name} & {objective} & {row['access_cost']:.3f} & "
+            f"{row['hit_ratio']:.3f} & {row['relocation_cost']:.3f} \\\\"
+        )
+    table_lines.extend(["\\bottomrule", "\\end{tabular}", "\\end{table}", ""])
+    (output_dir / "result_table.tex").write_text("\n".join(table_lines), encoding="utf-8")
+
+    compact_policies = ["diversified_popularity", "topology_greedy", "hybrid_dqn", "adaptive_tacc"]
+    compact = summary[summary["policy"].isin(compact_policies)].copy()
+    compact_lines = [
+        "\\begin{table}[t]",
+        "\\centering",
+        "\\caption{Objective values across topology perturbation rates for the strongest policies. Lower is better.}",
+        "\\label{tab:perturbation_results}",
+        "\\begin{tabular}{lrrrr}",
+        "\\toprule",
+        "Policy & $p=0.00$ & $p=0.05$ & $p=0.10$ & $p=0.15$ \\\\",
+        "\\midrule",
+    ]
+    for policy in compact_policies:
+        row = compact[compact["policy"] == policy].set_index("perturbation_rate")
+        values = []
+        for rate in [0.00, 0.05, 0.10, 0.15]:
+            values.append(f"{row.loc[rate, 'objective']:.3f}")
+        compact_lines.append(f"{DISPLAY_NAMES[policy]} & {' & '.join(values)} \\\\")
+    compact_lines.extend(["\\bottomrule", "\\end{tabular}", "\\end{table}", ""])
+    (output_dir / "perturbation_table.tex").write_text("\n".join(compact_lines), encoding="utf-8")
+
+    policies = ["random", "local_popularity", "diversified_popularity", "topology_greedy", "adaptive_tacc"]
+    filtered = summary[summary["policy"].isin(policies)].copy()
+    min_obj = filtered["objective"].min()
+    max_obj = filtered["objective"].max()
+    span = max(max_obj - min_obj, 1e-6)
+    colors = {
+        "random": "gray",
+        "local_popularity": "blue",
+        "diversified_popularity": "orange",
+        "topology_greedy": "teal",
+        "adaptive_tacc": "red",
+    }
+    y_positions = {policy: 0.8 + idx * 0.45 for idx, policy in enumerate(policies)}
+    rates = sorted(filtered["perturbation_rate"].unique())
+    x_positions = {rate: 1.0 + idx * 2.0 for idx, rate in enumerate(rates)}
+
+    lines = [
+        "\\begin{figure}[t]",
+        "\\centering",
+        "\\begin{tikzpicture}[x=1cm,y=1cm]",
+        "\\draw[->] (0.7,0.55) -- (7.6,0.55) node[right] {Perturbation rate};",
+        "\\draw[->] (0.7,0.55) -- (0.7,3.1) node[above] {Objective};",
+    ]
+    for rate, x in x_positions.items():
+        lines.append(f"\\node[below] at ({x:.2f},0.55) {{{rate:.2f}}};")
+    for policy in policies:
+        rows = filtered[filtered["policy"] == policy].sort_values("perturbation_rate")
+        coords = []
+        for _, row in rows.iterrows():
+            x = x_positions[row["perturbation_rate"]]
+            y = 0.75 + 2.1 * (row["objective"] - min_obj) / span
+            coords.append(f"({x:.2f},{y:.2f})")
+        color = colors[policy]
+        lines.append(f"\\draw[{color}, thick] {' -- '.join(coords)};")
+        for coord in coords:
+            lines.append(f"\\fill[{color}] {coord} circle (1.6pt);")
+        legend_y = y_positions[policy]
+        lines.append(f"\\draw[{color}, thick] (7.9,{legend_y:.2f}) -- (8.35,{legend_y:.2f});")
+        lines.append(f"\\node[right] at (8.4,{legend_y:.2f}) {{{DISPLAY_NAMES[policy]}}};")
+    lines.extend(
+        [
+            "\\end{tikzpicture}",
+            "\\caption{Objective value under topology perturbation. Adaptive TACC selects among diversity-aware placement, topology-aware greedy, and DQN-refined greedy using held-out perturbation samples and a high-churn volatility penalty.}",
+            "\\label{fig:objective_perturbation}",
+            "\\end{figure}",
+            "",
+        ]
+    )
+    (output_dir / "result_figure.tex").write_text("\n".join(lines), encoding="utf-8")

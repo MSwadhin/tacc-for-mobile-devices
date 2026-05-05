@@ -1,0 +1,18 @@
+\section{Introduction}
+
+Edge caching has emerged as a fundamental mechanism for reducing latency, alleviating backhaul congestion, and enabling real-time services in distributed systems. With the rise of edge computing and IoT, bringing content closer to users has become essential for supporting latency-sensitive applications such as autonomous driving, augmented reality, and real-time analytics \cite{Satyanarayanan2017Edge, Chiang2016Fog, bai2025collaborative}. Early works on distributed caching and content delivery demonstrated the benefits of placing content at the network edge to reduce access delays and improve scalability \cite{Shanmugam2013, Golrezaei2014JSAC}.
+
+However, most traditional caching strategies assume static network conditions and rely heavily on global popularity distributions. In practice, real-world edge networks exhibit dynamic behavior due to mobility, fluctuating workloads, and changing connectivity patterns. Even when the underlying infrastructure (e.g., WiFi access points) remains fixed, effective connectivity evolves over time due to user movement and access patterns. This mismatch between static assumptions and dynamic environments leads to suboptimal caching decisions and degraded performance.
+
+Recent advances have explored learning-based and cooperative caching strategies to address these challenges. Deep reinforcement learning (DRL) has been applied to adapt caching decisions in dynamic settings \cite{Chen2021TMC,Blasco2014,mnih2015dqn}, while multi-agent approaches enable coordination among distributed nodes \cite{zhou2023distributed}. In parallel, emerging application domains such as vehicular networks, UAV-assisted systems, and satellite-edge integration highlight the importance of mobility-aware and cooperative caching \cite{xu2026cooperative, ma2025delay}. These works demonstrate that caching decisions must account for both network structure and temporal variability.
+
+Despite these advances, two critical gaps remain. First, many approaches assume either predictable mobility models or require strong coordination mechanisms, limiting their applicability in real-world deployments. Second, most formulations do not explicitly incorporate the cost of adapting cache placements under topology changes, leading to unstable or inefficient policies in dynamic environments.
+
+In this work, we formulate edge caching as a topology-aware cooperative optimization problem over a graph-based network. The system is modeled as a static base topology derived from real-world traces, with stochastic perturbations capturing variability in connectivity. The objective is to minimize the expected content access cost while jointly considering storage constraints, redundancy penalties, and cache relocation overhead.
+
+To solve this problem, we propose a hybrid framework combining greedy optimization and deep reinforcement learning. The greedy component provides an efficient initial placement based on local utility, while the DRL component learns adaptive policies that respond to topology perturbations and dynamically relocate content. This combination enables both scalability and robustness under uncertainty.
+
+Our contributions are threefold:
+(i) a unified problem formulation that integrates topology-awareness, uncertainty, and relocation cost,
+(ii) a hybrid optimization approach combining heuristic and learning-based methods, and
+(iii) a trace-driven evaluation demonstrating robustness under dynamic conditions.

@@ -1,0 +1,93 @@
+\section{System Model and Problem Formulation}
+
+\subsection{Network Model}
+
+We consider an IoT edge network with a set of edge nodes \(V\). In the WLAN setting, each node corresponds to an AP-like edge cache. The mobility-derived topology is represented by a weighted graph
+\[
+G=(V,E,W),
+\]
+where \(E\) is the set of cooperative relationships and \(W=\{w_{ij}\}\) is the interaction weight matrix. Larger \(w_{ij}\) indicates stronger mobility-induced relation between nodes \(i\) and \(j\), such as frequent handoffs.
+
+The system contains a content catalog \(\mathcal{C}\). Each node \(i\) has cache capacity \(K_i\), measured as number of objects in this implementation. The binary placement variable is
+\[
+x_{i,c} =
+\begin{cases}
+1, & \text{if node } i \text{ stores content } c,\\
+0, & \text{otherwise.}
+\end{cases}
+\]
+The capacity constraint is
+\[
+\sum_{c \in \mathcal{C}} x_{i,c} \le K_i, \qquad \forall i \in V.
+\]
+
+\subsection{Perturbed Topology}
+
+Real edge networks are not perfectly stable. We model uncertainty by sampling a perturbed graph
+\[
+\tilde{G}=(\tilde{V},\tilde{E},\tilde{W}) \sim \mathcal{P}(G).
+\]
+In the implementation, nodes are removed with probability \(p\) and edges are removed with probability \(p/2\). The largest connected component is retained for evaluation. This models temporary AP unavailability and loss of cooperative links.
+
+\subsection{Access Cost}
+
+Let \(P_{i,c}\) denote the probability that node \(i\) requests content \(c\). Let \(L_{\text{local}}\) be local-cache latency and \(L_{\text{origin}}\) be origin-server latency. Let \(L(i,j)\) be the latency of retrieving content from node \(j\) to node \(i\), computed as a non-decreasing function of shortest-path distance in \(\tilde{G}\). The best non-local retrieval latency is
+\[
+A_{i,c}(x,\tilde{G})
+=
+\min\left(
+L_{\text{origin}},
+\min_{\substack{j \in \tilde{V}\\j \ne i\\x_{j,c}=1}} L(i,j)
+\right).
+\]
+The expected access cost is
+\[
+C_{\text{access}}(x,\tilde{G})
+=
+\sum_{i \in \tilde{V}}\sum_{c \in \mathcal{C}}
+P_{i,c}
+\left[
+x_{i,c}L_{\text{local}}+
+(1-x_{i,c})A_{i,c}(x,\tilde{G})
+\right].
+\]
+
+\subsection{Replication, Redundancy, and Relocation}
+
+Replication cost captures the overhead of storing objects:
+\[
+C_{\text{rep}}(x,\tilde{G})
+=
+\sum_{i \in \tilde{V}}\sum_{c \in \mathcal{C}}
+\gamma f_c x_{i,c}.
+\]
+Topology-aware redundancy penalizes storing the same object at strongly related nodes:
+\[
+C_{\text{red}}(x,\tilde{G})
+=
+\sum_{c \in \mathcal{C}}\sum_{\substack{i,j \in \tilde{V}\\i<j}}
+\tilde{w}_{ij}x_{i,c}x_{j,c}.
+\]
+Relocation cost measures how much a placement differs from a reference placement \(x^0\):
+\[
+C_{\text{rel}}(x,x^0)
+=
+\sum_{i \in \tilde{V}}\sum_{c \in \mathcal{C}}
+\delta_c |x_{i,c}-x^0_{i,c}|.
+\]
+
+\subsection{Optimization Objective}
+
+The stochastic topology-aware cooperative caching problem is
+\[
+\min_x
+\mathbb{E}_{\tilde{G}\sim\mathcal{P}(G)}
+\left[
+C_{\text{access}}
++ \lambda C_{\text{rep}}
++ \beta C_{\text{red}}
++ \mu C_{\text{rel}}
+\right],
+\]
+subject to binary placement and cache-capacity constraints. The objective captures the central trade-off: aggressive replication can reduce origin misses but wastes storage and increases redundancy; conservative placement reduces storage overhead but may increase access cost; frequent relocation adapts to topology changes but may be operationally expensive.
+

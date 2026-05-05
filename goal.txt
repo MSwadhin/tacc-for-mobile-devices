@@ -1,0 +1,24 @@
+read the current_version.pdf and report directory
+you will get the project idea
+then I need the following:
+
+1. make a solid and detailed plan
+2. Identify gaps in the current version:
+    a. methodology gaps
+    b. implementation details gaps
+    c. other gaps you can think about
+3. Fill the gaps with proper research backed approaches
+4. Derive a full pipeline and methodology
+5. download the dataset
+6. complete the implementation
+    a. run and check results
+    b. keep improving results until it is satisfiable 
+7. write a 30 page latex report on the project
+    a. include all sections currenyly used
+    b. add details
+    c. expand methodology
+    d. include results, metrics, discussion, conclusion
+    e. refine the previous writing where needed
+    f. include figures, tables etc
+
+Note: keep the original references from the report, add more when needed, use bibtex

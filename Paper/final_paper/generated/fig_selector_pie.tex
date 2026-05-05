@@ -1,0 +1,14 @@
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[x=1cm,y=1cm]
+\fill[purple!65] (0,0) -- (0.00:1.45) arc (0.00:180.00:1.45) -- cycle;
+\node at (0.00,1.15) {2/4};
+\fill[orange!65] (0,0) -- (180.00:1.45) arc (180.00:360.00:1.45) -- cycle;
+\node at (-0.00,-1.15) {2/4};
+\draw (0,0) circle (1.45);
+\fill[purple!65] (2.25,0.55) rectangle (2.55,0.85); \node[right] at (2.60,0.70) {Greedy+DQN};
+\fill[orange!65] (2.25,0.10) rectangle (2.55,0.40); \node[right] at (2.60,0.25) {Diversified};
+\end{tikzpicture}
+\caption{Adaptive TACC policy-selection frequency across the four perturbation regimes. The selector uses DQN-refined greedy in stable/high-churn regimes and diversified placement in moderate perturbation.}
+\label{fig:generated_selector_pie}
+\end{figure}

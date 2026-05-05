@@ -1,0 +1,131 @@
+\section{Caching in IoT Devices: Perspectives and Technical Details}
+
+\subsection{Role of Caching in IoT Systems}
+
+Caching is a fundamental mechanism for improving data delivery efficiency in IoT systems. In contrast to traditional networks, IoT workloads often involve frequent access to sensor readings, control data, multimedia streams, and model updates, many of which exhibit strong spatial and temporal locality. Caching such data at or near the edge reduces repeated transmissions from remote servers and improves responsiveness for latency-sensitive applications~\cite{Satyanarayanan2017Edge,Chiang2016Fog}.
+
+In IoT environments, caching supports:
+\begin{itemize}
+    \item Reduction of end-to-end communication latency
+    \item Mitigation of backhaul and core network congestion
+    \item Improved reliability during intermittent connectivity
+    \item Energy savings by reducing long-distance transmissions
+\end{itemize}
+
+These benefits make caching a critical component of edge-enabled IoT architectures~\cite{Satyanarayanan2017Edge}.
+
+\subsection{Caching Architectures in IoT and Edge Networks}
+
+Caching in IoT systems can be deployed at multiple architectural layers.
+
+\textbf{Device-level caching} occurs directly on IoT devices or sensors. While this approach offers minimal latency, it is severely constrained by limited storage, computation, and energy capacity.
+
+\textbf{Gateway-level caching} places caches at IoT gateways or edge servers that aggregate data from multiple devices. This layer offers a practical balance between proximity to users and available resources, making it a common choice in fog and edge computing architectures~\cite{Chiang2016Fog}.
+
+\textbf{In-network caching}, often studied in the context of Information-Centric Networking (ICN) or Named Data Networking (NDN), integrates caching directly into network forwarding elements. While powerful, such approaches require architectural changes to existing network infrastructure and are not always feasible in current deployments~\cite{Zhang2014NDN}.
+
+Among these, gateway- and access-point-level caching is particularly relevant for mobile and urban IoT environments, where users and devices frequently move across coverage areas.
+
+\subsection{Characteristics of IoT Caching Workloads}
+
+IoT caching workloads exhibit several characteristics that complicate cache management.
+
+\textbf{Spatial locality:} Data popularity varies across locations; content popular at one edge node may not be popular elsewhere.
+
+\textbf{Temporal dynamics:} Popularity changes over time due to events, context shifts, or diurnal patterns.
+
+\textbf{Mobility-driven correlation:} Requests observed at one node often predict future requests at neighboring nodes due to user movement~\cite{Kotz2004Dartmouth}.
+
+\textbf{Heterogeneity:} Devices generate diverse types of data with varying sizes, lifetimes, and access frequencies.
+
+These properties violate assumptions commonly made by classical caching policies, which expect relatively stable and independent request streams~\cite{Podlipnig2003}.
+
+\subsection{Challenges and Constraints in IoT Edge Caching}
+
+Caching in IoT edge environments is fundamentally more complex than traditional web or CDN caching due to the dynamic and resource-constrained nature of edge systems. These challenges arise not primarily from algorithmic limitations, but from the inherent characteristics of IoT deployments, especially those involving mobile devices.
+
+\subsubsection{Mobility-Induced Demand Shifts}
+
+In many IoT and edge scenarios, users and devices are mobile. For example, in campus-scale or urban Wi-Fi deployments such as those captured in large-scale WLAN traces devices associate with multiple access points over time as users move across physical locations. The Dartmouth campus Wi-Fi dataset records time-stamped device–AP associations, revealing frequent handoffs between access points throughout the day~\cite{Kotz2004Dartmouth}.
+
+Mobility introduces two important implications for caching:
+
+\textbf{Temporal correlation across nodes:}  
+Content requested at one edge node may soon be requested at a neighboring node due to user movement.
+
+\textbf{Non-stationary local demand:}  
+The popularity distribution observed at a node can change abruptly as users arrive or depart.
+
+These effects violate the assumption of independent and stationary request streams commonly used in classical caching models.
+
+\subsubsection{Limited Storage Capacity}
+
+Edge nodes such as IoT gateways or access points operate under constrained storage budgets. Unlike centralized cloud servers or CDNs, edge devices must carefully allocate limited cache capacity among competing content objects.
+
+This constraint creates a fundamental trade-off:
+
+\begin{itemize}
+    \item Replicating content across multiple nearby nodes increases availability.
+    \item Diversifying content across nodes reduces redundancy but may increase retrieval latency if coordination is weak.
+\end{itemize}
+
+Designing effective caching strategies requires balancing redundancy and diversity under strict capacity constraints.
+
+\subsubsection{Resource Constraints and Overhead}
+
+IoT edge devices may have:
+
+\begin{itemize}
+    \item Limited computational power
+    \item Limited energy resources
+    \item Restricted communication bandwidth between nodes
+\end{itemize}
+
+Cooperative caching mechanisms must therefore:
+
+\begin{itemize}
+    \item Minimize coordination overhead
+    \item Avoid excessive state exchange
+    \item Remain computationally lightweight
+\end{itemize}
+
+This constraint restricts the feasibility of fully centralized optimization and motivates scalable, distributed approaches.
+
+\subsubsection{Dynamic Network Topology}
+
+Unlike fixed data centers, IoT edge networks can exhibit dynamic topology due to:
+
+\begin{itemize}
+    \item User mobility
+    \item Variable wireless connectivity
+    \item Heterogeneous deployment density
+\end{itemize}
+
+Even if physical infrastructure remains static, the logical interaction graph between nodes changes over time because mobility patterns define which nodes share demand correlations.
+
+Caching strategies must therefore adapt not only to demand changes, but also to evolving inter-node relationships.
+
+\subsubsection{Scalability Across Dense Deployments}
+
+Future 5G/6G and IoT networks are expected to involve dense deployments of small cells, gateways, and access points. As network size increases:
+
+\begin{itemize}
+    \item The number of possible cooperative relationships grows rapidly.
+    \item Coordination complexity increases.
+    \item Global optimization becomes computationally prohibitive.
+\end{itemize}
+
+Any practical caching strategy must scale with the number of edge nodes without requiring centralized control.
+
+\subsubsection{Implications for This Research}
+
+These challenges collectively suggest that IoT edge caching requires:
+
+\begin{itemize}
+    \item Awareness of mobility-induced relationships
+    \item Adaptation to non-stationary demand
+    \item Efficient handling of limited storage
+    \item Scalable coordination mechanisms
+\end{itemize}
+
+In particular, mobility data—such as device–access point association logs—naturally defines a graph structure among edge nodes. This graph captures which nodes are likely to experience correlated demand over time.

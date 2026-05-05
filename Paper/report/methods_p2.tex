@@ -1,0 +1,338 @@
+\section{Methodology}
+
+\subsection{Overview}
+
+We propose a two-stage topology-aware cooperative caching framework that combines a greedy initialization procedure with a deep reinforcement learning (DRL) refinement phase. The greedy stage provides a fast, interpretable, and cost-aware initial placement, while the DRL stage refines this placement under random topology perturbations. This hybrid design is motivated by two considerations. First, the caching problem is combinatorial and difficult to solve exactly at scale. Second, directly training a DRL agent over the full placement space is inefficient without a strong initialization.
+
+The complete pipeline consists of the following steps:
+\begin{enumerate}
+    \item Construct a mobility-derived nominal graph \(G=(V,E,W)\) from the dataset.
+    \item Generate synthetic request probabilities \(P_{i,c}\) over the content catalog.
+    \item Create random perturbed graph instances \(\tilde{G} \sim \mathcal{P}(G)\) through node addition and removal.
+    \item Compute an initial placement using a topology-aware greedy algorithm.
+    \item Refine the placement using DRL, with reward defined by the negative expected total cost.
+\end{enumerate}
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+    node distance=1.35cm,
+    block/.style={draw, rounded corners, minimum width=3.2cm, minimum height=0.85cm, align=center},
+    arrow/.style={-{Latex[length=2.5mm]}, thick}
+]
+\node[block] (data) {Mobility Trace};
+\node[block, below=of data] (graph) {Nominal Graph Construction};
+\node[block, below=of graph] (demand) {Synthetic Demand Generation};
+\node[block, below=of demand] (perturb) {Topology Perturbation Sampler};
+\node[block, below left=0.8cm and 1.8cm of perturb] (greedy) {Greedy Initialization};
+\node[block, below right=0.8cm and 1.8cm of perturb] (drl) {DRL Refinement};
+\node[block, below=1.6cm of perturb] (final) {Robust Cache Placement};
+
+\draw[arrow] (data) -- (graph);
+\draw[arrow] (graph) -- (demand);
+\draw[arrow] (demand) -- (perturb);
+\draw[arrow] (perturb) -- (greedy);
+\draw[arrow] (perturb) -- (drl);
+\draw[arrow] (greedy) -- (final);
+\draw[arrow] (drl) -- (final);
+\end{tikzpicture}
+\caption{Methodology pipeline: the system builds a nominal mobility graph, generates demand and perturbations, computes a greedy initial placement, and then refines it through DRL.}
+\label{fig:method_pipeline}
+\end{figure}
+
+\subsection{Graph Construction and Perturbation Model}
+
+We first construct a nominal weighted graph \(G=(V,E,W)\) from user handoff traces. For each pair of nodes \(i,j \in V\), let \(H_{ij}\) denote the number of observed handoffs from \(i\) to \(j\). We define the normalized interaction weight as
+\[
+w_{ij} = \frac{H_{ij}}{\sum_{k} H_{ik}}.
+\]
+Edges with negligible transition frequency may be removed by thresholding.
+
+To model topology uncertainty, we define a perturbation process \(\mathcal{P}(G)\) that generates a perturbed graph \(\tilde{G} = (\tilde{V}, \tilde{E}, \tilde{W})\) by randomly removing and adding nodes. When a node is removed, all incident edges are deleted. When a node is added, its incident edges are inferred from the mobility model or sampled from historical transition statistics. This perturbation model is used both during greedy evaluation and DRL training.
+
+\subsection{Synthetic Demand Model}
+
+Since the dataset does not include content requests, demand is generated synthetically. Let \(\mathcal{C}\) be the content catalog. Global content popularity follows a Zipf distribution:
+\[
+P(c) = \frac{c^{-\alpha}}{\sum_{m=1}^{|\mathcal{C}|} m^{-\alpha}},
+\]
+where \(\alpha > 0\) controls the skewness.
+
+To capture spatial locality, the node-specific demand distribution is defined as
+\[
+P_{i,c} = \frac{\eta_{i,c} P(c)}{\sum_{c' \in \mathcal{C}} \eta_{i,c'} P(c')},
+\]
+where \(\eta_{i,c}\) is a locality bias factor for node \(i\) and content \(c\). This allows different nodes to prefer different subsets of the catalog.
+
+\subsection{Cost Components}
+
+The methodology uses the same cost terms as the problem formulation.
+
+For a placement \(x\) on a perturbed graph \(\tilde{G}\), define the best non-local retrieval latency as
+\[
+A_{i,c}(x,\tilde{G})
+=
+\min\!\left(
+L_{\text{origin}},
+\;
+\min_{\substack{j \in \tilde{V} \\ j \neq i \\ x_{j,c}=1}} L(i,j)
+\right).
+\]
+
+Then:
+\[
+C_{\text{access}}(x,\tilde{G})
+=
+\sum_{i \in \tilde{V}} \sum_{c \in \mathcal{C}}
+P_{i,c}
+\left[
+x_{i,c}L_{\text{local}}
++
+(1-x_{i,c})A_{i,c}(x,\tilde{G})
+\right],
+\]
+\[
+C_{\text{rep}}(x,\tilde{G})
+=
+\sum_{i \in \tilde{V}} \sum_{c \in \mathcal{C}}
+\gamma f_c x_{i,c},
+\]
+\[
+C_{\text{red}}(x,\tilde{G})
+=
+\sum_{c \in \mathcal{C}}
+\sum_{\substack{i,j \in \tilde{V} \\ i<j}}
+\tilde{w}_{ij}x_{i,c}x_{j,c},
+\]
+\[
+C_{\text{rel}}(x,x^0)
+=
+\sum_{i \in \tilde{V}} \sum_{c \in \mathcal{C}}
+\delta_c |x_{i,c}-x_{i,c}^0|.
+\]
+
+The total cost under a perturbed graph is
+\[
+J(x,\tilde{G})
+=
+C_{\text{access}}(x,\tilde{G})
++
+\lambda C_{\text{rep}}(x,\tilde{G})
++
+\beta C_{\text{red}}(x,\tilde{G})
++
+\mu C_{\text{rel}}(x,x^0).
+\]
+
+\subsection{Stage I: Greedy Topology-Aware Initialization}
+
+The greedy stage builds the cache placement incrementally. At each step, the algorithm selects the node--content pair that gives the largest decrease in expected total cost.
+
+Let \(x\) be the current placement. For each feasible pair \((i,c)\), define the marginal gain:
+\[
+\Delta(i,c \mid x)
+=
+\mathbb{E}_{\tilde{G} \sim \mathcal{P}(G)}
+\left[
+J(x,\tilde{G}) - J(x^{(i,c)},\tilde{G})
+\right],
+\]
+where \(x^{(i,c)}\) is the placement obtained by setting \(x_{i,c}=1\), provided the capacity constraint remains satisfied.
+
+At each iteration, the greedy algorithm chooses
+\[
+(i^*,c^*) = \arg\max_{(i,c)} \Delta(i,c \mid x),
+\]
+and updates the placement accordingly. The process stops when all caches are full or when no candidate produces positive marginal gain.
+
+\begin{algorithm}[t]
+\caption{Greedy Topology-Aware Cache Initialization}
+\label{alg:greedy}
+\begin{algorithmic}[1]
+\Require Nominal graph \(G\), perturbation process \(\mathcal{P}(G)\), content catalog \(\mathcal{C}\), capacities \(\{K_i\}\), initial placement \(x^0\)
+\Ensure Greedy cache placement \(x\)
+\State Initialize \(x \gets x^0\)
+\State Mark all available slots at each node
+\Repeat
+    \State bestGain \(\gets 0\), bestPair \(\gets \varnothing\)
+    \For{each node \(i\)}
+        \For{each content \(c \in \mathcal{C}\) such that \(x_{i,c}=0\) and node \(i\) has free capacity}
+            \State Construct tentative placement \(x^{(i,c)}\) by setting \(x_{i,c}=1\)
+            \State Estimate marginal gain
+            \[
+            \Delta(i,c \mid x)
+            =
+            \mathbb{E}_{\tilde{G} \sim \mathcal{P}(G)}
+            \left[
+            J(x,\tilde{G}) - J(x^{(i,c)},\tilde{G})
+            \right]
+            \]
+            \If{\(\Delta(i,c \mid x) > \) bestGain}
+                \State bestGain \(\gets \Delta(i,c \mid x)\)
+                \State bestPair \(\gets (i,c)\)
+            \EndIf
+        \EndFor
+    \EndFor
+    \If{bestPair \(\neq \varnothing\)}
+        \State Update \(x\) by caching \(c\) at node \(i\) for bestPair
+    \EndIf
+\Until{bestPair \(=\varnothing\)}
+\State \Return \(x\)
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Stage II: DRL-Based Refinement}
+
+The greedy solution is then used as the initial state for DRL refinement. The DRL agent learns a placement-improvement policy under random topology perturbations.
+
+\subsubsection{State Representation}
+At each decision step, the state includes:
+\begin{itemize}
+    \item the current perturbed graph \(\tilde{G}\),
+    \item the current cache placement \(x\),
+    \item node capacities and free cache slots,
+    \item node-wise demand statistics \(P_{i,c}\),
+    \item graph-derived features such as degree, weighted degree, or centrality.
+\end{itemize}
+
+In the implementation, this state is encoded as a fixed-length vector formed by concatenating the binary cache placement matrix, the node-content demand matrix, and graph features for each AP. The graph features include normalized degree, normalized weighted degree, and closeness centrality computed on latency-weighted graph edges. This design keeps the model lightweight while still exposing topology information to the DQN. A graph neural network encoder would be a natural extension, but the present implementation intentionally uses explicit graph features so the pipeline remains simple enough to run locally.
+
+\subsubsection{Action Space}
+An action modifies the current placement through one of the following operations:
+\begin{itemize}
+    \item add content \(c\) to node \(i\),
+    \item remove content \(c\) from node \(i\),
+    \item swap content \(c_1\) with \(c_2\) at node \(i\),
+    \item relocate content \(c\) from node \(i\) to node \(j\).
+\end{itemize}
+Each action must preserve feasibility under the cache capacity constraints.
+
+For the runnable DQN experiment, actions are indexed as node-content toggle candidates. If an action adds content to a node whose cache is already full, the implementation evicts the currently cached item with the lowest local demand at that node. This converts the abstract add/remove/swap behavior into a compact discrete action space of size \(|V||\mathcal{C}|\), which is compatible with DQN and preserves the cache capacity constraint.
+
+\subsubsection{Reward Function}
+The DRL reward is defined as the negative total cost:
+\[
+r = -J(x,\tilde{G}).
+\]
+Equivalently, one may use the improvement in cost between consecutive states:
+\[
+r_t = J(x_t,\tilde{G}_t) - J(x_{t+1},\tilde{G}_t).
+\]
+This encourages the agent to find placements that reduce access cost, replication overhead, redundancy, and relocation cost simultaneously.
+
+\subsubsection{Training Procedure}
+For each training episode, a perturbed graph \(\tilde{G}\) is sampled from \(\mathcal{P}(G)\). The episode starts from the greedy placement and the agent interacts with the environment by applying cache modifications until a termination criterion is met (e.g., a maximum number of actions or no further improvement).
+
+The DQN uses a two-layer feedforward Q-network with ReLU activations, replay buffer sampling, a target network, discount factor 0.92, learning rate 0.001, and an epsilon-greedy exploration schedule. The final run uses 85 episodes and 16 actions per episode. At inference time, candidate DQN actions are accepted only if they reduce the measured objective relative to the current placement. This acceptance rule prevents the learned refiner from degrading a strong greedy warm start and keeps relocation overhead bounded.
+
+\begin{algorithm}[t]
+\caption{DRL Refinement under Topology Perturbation}
+\label{alg:drl}
+\begin{algorithmic}[1]
+\Require Nominal graph \(G\), perturbation process \(\mathcal{P}(G)\), greedy placement \(x^{\text{greedy}}\), replay buffer \(\mathcal{D}\)
+\Ensure Refined policy \(\pi_\theta\)
+\For{episode \(=1\) to \(N_{\text{episodes}}\)}
+    \State Sample perturbed graph \(\tilde{G} \sim \mathcal{P}(G)\)
+    \State Initialize placement \(x \gets x^{\text{greedy}}\)
+    \State Construct initial state \(s_0 = (\tilde{G}, x)\)
+    \For{step \(t=0\) to \(T_{\max}\)}
+        \State Select action \(a_t \sim \pi_\theta(s_t)\) using \(\epsilon\)-greedy or policy sampling
+        \State Apply action \(a_t\) to obtain new feasible placement \(x'\)
+        \State Compute reward
+        \[
+        r_t = J(x,\tilde{G}) - J(x',\tilde{G})
+        \]
+        \State Construct next state \(s_{t+1} = (\tilde{G}, x')\)
+        \State Store transition \((s_t, a_t, r_t, s_{t+1})\) in replay buffer \(\mathcal{D}\)
+        \State Update policy parameters \(\theta\) using mini-batches from \(\mathcal{D}\)
+        \State Set \(x \gets x'\)
+        \If{termination condition is satisfied}
+            \State \textbf{break}
+        \EndIf
+    \EndFor
+\EndFor
+\State \Return learned policy \(\pi_\theta\)
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Greedy--DRL Hybrid Inference}
+
+At inference time, the final placement is produced in two steps:
+\begin{enumerate}
+    \item compute the initial placement using Algorithm~\ref{alg:greedy};
+    \item refine it using a fixed number of DRL improvement steps from Algorithm~\ref{alg:drl}.
+\end{enumerate}
+
+This hybrid strategy preserves the interpretability of the greedy approach while allowing learning-based adaptation to topology perturbations.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+    node distance=1.25cm and 1.8cm,
+    block/.style={draw, rounded corners, minimum width=2.8cm, minimum height=0.8cm, align=center},
+    arrow/.style={-{Latex[length=2.5mm]}, thick}
+]
+\node[block] (start) {Initial Placement \(x^0\)};
+\node[block, below=of start] (greedy) {Greedy Warm Start};
+\node[block, below=of greedy] (perturb) {Sample Perturbed Graph \(\tilde{G}\)};
+\node[block, below left=0.9cm and 1.8cm of perturb] (state) {State Construction};
+\node[block, below right=0.9cm and 1.8cm of perturb] (action) {DRL Action};
+\node[block, below=1.8cm of perturb] (update) {Placement Update};
+\node[block, below=of update] (reward) {Cost / Reward Evaluation};
+
+\draw[arrow] (start) -- (greedy);
+\draw[arrow] (greedy) -- (perturb);
+\draw[arrow] (perturb) -- (state);
+\draw[arrow] (perturb) -- (action);
+\draw[arrow] (state) -- (update);
+\draw[arrow] (action) -- (update);
+\draw[arrow] (update) -- (reward);
+\draw[arrow] (reward.east) to[out=0,in=0,looseness=1.6] node[right] {\small feedback} (action.east);
+\end{tikzpicture}
+\caption{Greedy--DRL hybrid refinement. The greedy stage provides a strong initial placement; the DRL stage improves it under sampled topology perturbations.}
+\label{fig:hybrid_refinement}
+\end{figure}
+
+
+\subsection{Evaluation Procedure}
+
+For each final placement, we evaluate the following:
+\begin{itemize}
+    \item expected access cost,
+    \item replication cost,
+    \item redundancy penalty,
+    \item relocation cost,
+    \item total objective value.
+\end{itemize}
+
+These quantities are averaged over multiple perturbed graphs sampled from \(\mathcal{P}(G)\). This directly matches the stochastic objective in the problem formulation and measures the robustness of the learned caching strategy.
+
+\subsection{Implementation Pipeline}
+
+The complete implementation is organized as a reproducible Python package:
+\begin{itemize}
+    \item \texttt{src/tacc/data.py} loads a movement trace or creates the deterministic trace-compatible fallback.
+    \item \texttt{src/tacc/graph.py} constructs the handoff graph, computes graph features, and samples perturbations.
+    \item \texttt{src/tacc/demand.py} generates Zipf and spatial-locality demand.
+    \item \texttt{src/tacc/evaluate.py} computes access cost, hit ratios, redundancy, relocation, and the full objective.
+    \item \texttt{src/tacc/placement.py} implements random, local popularity, global popularity, diversified popularity, and topology-aware greedy placements.
+    \item \texttt{src/tacc/rl.py} implements DQN training and accepted-action refinement.
+    \item \texttt{src/tacc/reporting.py} writes report-ready LaTeX tables and figures.
+    \item \texttt{scripts/run\_experiments.py} runs the full experiment and writes result files.
+\end{itemize}
+
+This structure connects the mathematical formulation to executable artifacts. Each symbol in the objective has a corresponding implementation parameter, and each reported metric is computed directly from a placement matrix, demand matrix, and perturbed graph. The code also records metadata such as graph size, random seed, fallback dataset usage, and runtime, which supports reproducibility.
+
+\subsection{Design Rationale}
+
+The greedy stage is responsible for global structure. It evaluates marginal node-content additions using the expected objective over sampled perturbations, so it naturally favors placements that reduce origin access while avoiding unnecessary edge-neighbor duplication. The learning stage is responsible for local improvement around the greedy solution. This division is important because the complete binary placement space is too large for naive reinforcement learning, but the neighborhood around a strong greedy solution is small enough for a compact DQN to search effectively.
+
+The approach also separates topology-awareness from content-demand assumptions. The graph is derived from mobility handoffs, while content demand is generated from an explicit Zipf-locality model. This separation is useful because real WLAN traces often contain mobility information without application-level content identifiers. The framework can therefore accept real content logs if available, but remains usable when only mobility traces are public.
+
+
+
+
+
+% \subsection{Discussion}
+
+% The greedy stage provides a low-cost approximation that is easy to interpret and analyze. The DRL stage improves adaptability by learning how to respond to topology perturbations and relocation opportunities that are difficult to capture through hand-designed local rules alone. Together, the two stages produce a practical and robust cooperative caching framework.

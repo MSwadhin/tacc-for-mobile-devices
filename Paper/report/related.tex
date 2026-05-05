@@ -1,0 +1,41 @@
+\section{Related Work}
+
+Edge caching has been widely investigated across wireless networks, mobile systems, and IoT-enabled edge computing. Existing work can be broadly categorized into (i) optimization-based cooperative caching, (ii) mobility-aware and social-aware caching, (iii) reinforcement learning–based caching, and (iv) structured or knowledge-driven cooperative caching. Despite significant progress, current approaches still exhibit limitations in explicitly modeling dynamic, mobility-derived topology as a first-class learning object.
+
+\subsection{Optimization-Based Cooperative Caching}
+
+Several works have formulated cooperative caching as an optimization problem under storage and bandwidth constraints. Blasco and Gunduz~\cite{Blasco2014} proposed a learning-based proactive caching framework that models content popularity dynamics using online learning and solves cache placement via convex optimization. Similarly, Maddah-Ali and Niesen~\cite{MaddahAli2014} introduced coded caching to improve network efficiency through coordinated placement and delivery strategies.
+
+Poularakis et al.~\cite{Poularakis2016} investigated joint caching and computation offloading at the edge, formulating it as a resource allocation problem. These approaches demonstrate that coordination among nodes can significantly improve system performance. However, they typically assume static or centrally known network topology and do not adaptively learn mobility-induced relationships between nodes.
+
+\subsection{Mobility-Aware and Social-Aware Caching}
+
+User mobility has been recognized as an important factor in caching efficiency. Li et al.~\cite{Li2018Mobility} proposed mobility-aware edge caching strategies that leverage predicted user trajectories to prefetch content at future locations. Similarly, Wang et al.~\cite{Wang2017Mobility} explored mobility prediction to improve caching decisions in mobile edge networks.
+
+In delay-tolerant and socially aware networks, caching has been enhanced by incorporating social relationships among users. Mardham et al.~\cite{Mardham2018} proposed opportunistic distributed caching in delay-tolerant networks using mobility patterns. Cabaniss and Madria~\cite{Cabaniss2014} leveraged social context to guide content distribution in mobile environments.
+
+While these works acknowledge mobility-induced correlations, cooperation is often driven by predefined mobility predictions or social heuristics rather than by learning the evolving topological structure among edge nodes.
+
+\subsection{Reinforcement Learning-Based Edge Caching}
+
+Reinforcement learning (RL) has emerged as a promising technique for dynamic caching under non-stationary demand. He et al.~\cite{He2018RL} proposed deep reinforcement learning for content caching in edge networks to adaptively respond to changing popularity distributions. Wang et al.~\cite{Min2020MARL} proposed a multi-agent deep reinforcement learning framework with bandwidth-efficient inter-agent communication to improve cooperative edge caching performance under dynamic demand.
+
+Although MARL introduces cooperative behavior, the underlying topology is typically implicit. Agents exchange limited information or coordinate through reward shaping, but the structural graph of inter-node relationships is not explicitly modeled or learned as a dynamic entity.
+
+\subsection{Knowledge and Graph-Based Caching Approaches}
+
+More recently, structured representations such as knowledge graphs have been introduced to enhance caching decisions. Wang et al.~\cite{Wang2024KGCoopCaching} proposed a knowledge graph–based reinforcement learning framework for cooperative caching in mobile edge computing systems. Their approach captures semantic relationships among contents and network states.
+
+Despite incorporating structured representations, most existing work focuses on content-level relationships rather than explicitly modeling time-varying inter-node mobility graphs. The integration of graph learning methods—such as Graph Neural Networks—to directly encode mobility-induced topology in cooperative caching remains largely unexplored.
+
+% \subsection{Summary of Gaps}
+
+% The reviewed literature reveals three persistent gaps:
+
+% \begin{itemize}
+%     \item \textbf{Node-local dominance:} Even recent learning-based caching approaches primarily optimize per-node policies.
+%     \item \textbf{Implicit topology modeling:} Cooperative behavior is often heuristic or reward-driven rather than derived from an explicitly learned mobility graph.
+%     \item \textbf{Limited mobility-grounded evaluation:} Many works rely on synthetic mobility models rather than real-world association traces.
+% \end{itemize}
+
+% These observations motivate a topology-aware cooperative caching framework that explicitly models time-varying mobility-induced graphs and learns coordinated cache placement decisions across edge nodes.

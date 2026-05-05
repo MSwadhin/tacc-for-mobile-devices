@@ -1,0 +1,77 @@
+\section{Evaluation}
+
+\subsection{Experimental Setup}
+
+The evaluation uses the reproducible pipeline implemented in \texttt{src/tacc/} and executed through \texttt{scripts/run\_experiments.py}. Nodes represent APs, weighted edges represent mobility handoffs, and content demand is generated using the Zipf-plus-locality model described in the Dataset section. The final experiment was executed with seed 11, 20 AP nodes, 48 content objects, cache capacity 5, Zipf parameter \(\alpha=0.85\), locality multiplier 2.8, and 12 perturbation samples per reported setting.
+
+Topology perturbations are introduced by removing nodes with probability \(p\) and edges with probability \(p/2\), where \(p \in \{0.00,0.05,0.10,0.15\}\). After perturbation, the largest connected component is retained for evaluation. This models temporary AP unavailability, logical connectivity loss, or mobility-driven changes in effective cooperation relationships.
+
+\begin{table}[t]
+\centering
+\caption{Main experiment parameters.}
+\label{tab:parameters}
+\begin{tabular}{lr}
+\toprule
+Parameter & Value \\
+\midrule
+AP nodes & 20 \\
+Weighted edges & 190 \\
+Catalog size & 48 \\
+Cache capacity & 5 objects/node \\
+Evaluation samples/rate & 12 \\
+Perturbation rates & 0.00, 0.05, 0.10, 0.15 \\
+DQN episodes & 85 \\
+DQN steps/episode & 16 \\
+Replay batch size & 64 \\
+Discount factor & 0.92 \\
+Learning rate & 0.001 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Baselines}
+
+The proposed approach is compared against the following baselines:
+\begin{itemize}
+    \item \textbf{Random Placement}: each AP caches uniformly sampled content subject to capacity.
+    \item \textbf{Local Popularity}: each AP caches its own top-\(K\) demand items.
+    \item \textbf{Global Popularity}: every AP caches the same globally popular top-\(K\) objects, intentionally exposing redundancy.
+    \item \textbf{Diversified Popularity}: APs cache shifted slices of the global popularity ranking to reduce duplicated neighbors.
+    \item \textbf{Topology-Aware Greedy}: the proposed greedy marginal-gain method without learning refinement.
+    \item \textbf{Greedy + DQN Refinement}: the full hybrid policy, initialized from topology-aware greedy and refined through accepted DQN actions.
+\end{itemize}
+
+\subsection{Metrics}
+
+The performance is evaluated using the following metrics:
+\begin{itemize}
+    \item \textbf{Objective}: weighted sum of access, replication, redundancy, and relocation terms, normalized per active node.
+    \item \textbf{Average Access Cost}: expected latency-like retrieval cost before penalty terms.
+    \item \textbf{Hit Ratio}: fraction of demand served locally or by another active edge node.
+    \item \textbf{Local Hit Ratio}: fraction served directly from the requesting AP.
+    \item \textbf{Cooperative Hit Ratio}: fraction served by another AP in the perturbed graph.
+    \item \textbf{Origin Miss Ratio}: fraction requiring the origin server.
+    \item \textbf{Redundancy Ratio}: edge-weighted duplication of content among related APs.
+    \item \textbf{Relocation Overhead}: placement changes relative to the policy's starting cache. For the hybrid policy this is measured relative to the greedy warm start.
+\end{itemize}
+
+\subsection{Results}
+
+\input{generated/result_table}
+\input{generated/result_figure}
+
+Table~\ref{tab:measured_results} reports the lowest perturbation setting. The full hybrid method obtains the best objective value, 2.414, compared with 2.633 for topology-aware greedy and 2.739 for diversified popularity. The hybrid policy also achieves a hit ratio of 0.994, indicating that almost all synthetic demand is served by either the local AP or another active AP in the graph. The improvement over topology-aware greedy comes from a small number of accepted DQN refinements: relocation overhead is 0.200 objects per active node, while the objective decreases by approximately 8.3\%.
+
+Figure~\ref{fig:objective_perturbation} shows robustness as the perturbation rate increases. The hybrid policy remains below the greedy-only policy at every perturbation rate: 3.775 versus 4.013 at \(p=0.05\), 4.082 versus 4.336 at \(p=0.10\), and 4.988 versus 5.172 at \(p=0.15\). This supports the central design choice of using greedy placement as a strong warm start and using DRL for bounded improvement rather than asking RL to discover the whole cache placement from scratch.
+
+The global popularity baseline performs poorly because every AP stores the same objects. This creates high redundancy and leaves many local or cluster-specific requests uncovered. Local popularity also performs poorly because each node ignores nearby caches and therefore fails to exploit cooperative retrieval. Random placement is surprisingly stronger than local popularity in this dense synthetic graph because random diversity increases the chance that some neighbor stores a requested object, but it remains far worse than topology-aware policies.
+
+\subsection{Ablation Study}
+
+The most direct ablation is the comparison between \textbf{Topology-Aware Greedy} and \textbf{Greedy + DQN Refinement}. Removing the DQN stage increases the objective from 2.414 to 2.633 at \(p=0.00\), from 3.775 to 4.013 at \(p=0.05\), from 4.082 to 4.336 at \(p=0.10\), and from 4.988 to 5.172 at \(p=0.15\). The gap is moderate rather than dramatic, which is expected because the greedy warm start is already strong. This is a useful outcome: the learning component improves robustness without destabilizing the placement.
+
+A second ablation is implicit in the comparison with diversified popularity. Diversified popularity reduces redundancy but is not cost-aware; it has a good nominal result but becomes less stable under stronger perturbation. At \(p=0.15\), diversified popularity reaches objective 5.252, while the hybrid method achieves 4.988. This suggests that diversity alone is insufficient; placement needs to consider graph distance, demand, and the cost of adapting under topology changes.
+
+\subsection{Runtime and Reproducibility}
+
+The final run completed in 145.2 seconds on the local machine. All random choices use controlled seeds, and the output files are saved in \texttt{results/final/summary\_metrics.csv} and \texttt{results/final/run\_metadata.json}. The generated LaTeX result assets are saved under \texttt{Paper/report/generated/}. This makes the evaluation repeatable and allows the report tables to be regenerated after parameter changes.

@@ -1,0 +1,40 @@
+# macOS / editor noise
+.DS_Store
+**/.DS_Store
+
+# Python caches and local environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+*.lof
+*.lot
+
+# Experiment scratch outputs
+results/smoke*/
+
+# Large raw dataset/archive downloads.
+# Keep the small deterministic fallback CSV and final results tracked.
+data/raw/*.tar
+data/raw/*.tar.gz
+data/raw/*.tgz
+data/raw/*.zip
+data/raw/*.gz
+

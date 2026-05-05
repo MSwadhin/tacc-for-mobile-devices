@@ -1,0 +1,35 @@
+\section{Research Questions and Gap Analysis}
+
+The project is organized around four research questions. These questions turn the broad goal of topology-aware cooperative caching into testable claims.
+
+\textbf{RQ1: How should a mobility trace be converted into a cooperative caching topology?}
+The first question concerns representation. WLAN traces provide user--AP associations, not an explicit edge-caching graph. We therefore construct a mobility graph whose nodes are APs and whose weighted edges are inferred from handoff counts. This graph captures which APs observe related users over time and therefore may benefit from cooperative caching.
+
+\textbf{RQ2: Can topology-aware placement improve cache efficiency compared with node-local popularity policies?}
+The second question tests whether graph information has practical value. Local popularity can optimize each AP independently, but it can also duplicate content unnecessarily or ignore nearby caches. A topology-aware objective should reduce origin misses while controlling redundancy among strongly related APs.
+
+\textbf{RQ3: Does learning-based refinement improve a greedy topology-aware placement?}
+The third question evaluates the value of DRL in a combinatorial cache-placement problem. Instead of training from an empty placement, the DQN starts from a strong greedy solution and searches for local improvements. This tests whether learning adds value beyond a carefully designed heuristic.
+
+\textbf{RQ4: Is one placement policy sufficient under all topology perturbation regimes?}
+The fourth question addresses robustness. Moderate perturbation may favor diversity, while high perturbation may favor more conservative placements with lower relocation and redundancy exposure. This motivates an adaptive selector that chooses among candidate policies using held-out perturbation samples.
+
+\begin{table}[t]
+\centering
+\caption{Initial project gaps and how the final methodology addresses them.}
+\label{tab:gap_closure}
+\begin{tabular}{p{0.28\textwidth}p{0.62\textwidth}}
+\toprule
+Gap & Resolution in this work \\
+\midrule
+No executable pipeline & Added reusable Python modules for data, graph construction, demand, placement, DRL, evaluation, and reporting. \\
+Dataset access uncertainty & Recorded official Dartmouth/IEEE DataPort sources and added a trace-compatible fallback clearly marked as synthetic. \\
+Vague graph construction & Defined AP nodes, OFF filtering, handoff extraction, edge weighting, AP activity filtering, and largest-component selection. \\
+Underspecified demand & Added Zipf popularity, AP-cluster locality, catalog size, cache capacity, and fixed seeds. \\
+Conceptual DRL only & Implemented DQN with placement vector state, graph features, replay buffer, target network, epsilon-greedy exploration, and accepted-action inference. \\
+Weak evaluation & Added six baselines, repeated perturbation samples, objective standard deviation, hit-ratio decomposition, and result tables generated from CSV output. \\
+Unsupported claims & Rewrote the evaluation around measured results and added an adaptive selector where a single static policy was not consistently best. \\
+\bottomrule
+\end{tabular}
+\end{table}
+

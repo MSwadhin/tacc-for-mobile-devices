@@ -1,0 +1,25 @@
+\section{Limitations of Current State-of-the-Art}
+
+Despite significant progress in edge and cooperative caching, existing state-of-the-art (SOTA) approaches face structural limitations that reduce their effectiveness in dynamic IoT edge environments.
+
+\subsection{Node-Centric Optimization}
+
+Many caching strategies, including learning based methods, primarily optimize decisions at individual edge nodes using local demand information. Although this improves scalability, it ignores dependencies created by user mobility and spatial correlations. As a result, independently optimized caches may replicate the same content unnecessarily or fail to anticipate demand shifts across neighboring nodes.
+
+\subsection{Static Cooperation Assumptions}
+
+Several cooperative caching approaches rely on predefined neighborhoods, fixed clusters, or heuristic coordination rules.However, in IoT edge environments where user mobility continuously changes inter-node interactions, fixed cooperation structures may not reflect actual demand relationships, leading to inefficient coordination.
+
+\subsection{Implicit Topology Modeling}
+
+Recent reinforcement learning and multi agent frameworks improve adaptability under changing demand. However, topology is often treated implicitly through shared rewards or limited information exchange, rather than being explicitly modeled as a dynamic graph. Without a formal representation of evolving inter node relationships, such approaches cannot fully utilize the structural correlations in the network.
+
+\subsection{Limited Use of Real Mobility Data}
+
+Many evaluation studies rely on synthetic mobility models or simplified demand traces. While analytically convenient, these settings do not accurately capture real handoff patterns and time-varying association structures observed in practical edge networks. This limits the realism and applicability of their conclusions.
+
+\subsection{Scalability and Generalization Challenges}
+
+Centralized optimization based methods often become computationally expensive in large-scale deployments, while fully decentralized heuristics may yield suboptimal performance. Additionally, policies designed under specific network conditions may not generalize well to environments with different node densities, mobility patterns, or demand characteristics. The lack of explicit structural modeling limits robustness across heterogeneous deployments.
+
+Overall, current SOTA approaches are limited by node centric optimization, static cooperation assumptions, implicit topology handling, limited mobility grounded evaluation, and scalability generalization trade offs. These limitations motivate the need for a topology aware cooperative caching framework that explicitly models time-varying mobility-driven graphs and learns coordinated caching policies for dynamic IoT edge systems.

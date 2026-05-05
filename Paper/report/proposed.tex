@@ -1,0 +1,87 @@
+\section{Proposed Methodology for Phase 2}
+
+We propose a systematic approach to learn topology-aware caching policies for IoT edge networks, which we plan to implement in phase 2.
+Our proposed methodology consists of five stages: (i) graph construction from mobility traces, (ii) workload modeling, (iii) trace-driven simulation, (iv) baseline policy implementation, and (v) topology-aware cooperative caching design and evaluation.
+
+\subsection{Graph Construction from Mobility Traces}
+We utilize large-scale Wi-Fi association logs to construct a mobility-driven edge network graph. Each access point (AP) is modeled as an edge node (cache). Inter-node relationships are derived from user handoff patterns: if a device transitions from AP $i$ to AP $j$, we add (or increment) an edge $(i,j)$. The resulting weighted graph is:
+\[
+G = (V, E, W),
+\]
+where $V$ is the set of APs, $E$ is the set of edges induced by handoffs, and $W$ contains edge weights proportional to handoff frequency (optionally normalized). This graph captures topological dependencies induced by real mobility.
+
+\subsection{Workload Modeling}
+Since mobility datasets typically do not include content identifiers, we generate a synthetic but realistic request workload layered on the mobility trace. Requests follow:
+\begin{itemize}
+    \item Zipf-like global popularity,
+    \item Spatial locality (node-specific preference skews),
+    \item Temporal dynamics (popularity drift and burstiness).
+\end{itemize}
+Each request event is represented as:
+\[
+r_k = (t_k, v_k, c_k, s_k),
+\]
+where $t_k$ is the timestamp, $v_k \in V$ is the edge node serving the device at time $t_k$, $c_k$ is the content identifier, and $s_k$ is the content size.
+
+\subsection{Trace-Driven Simulation from the Dataset}
+We perform a discrete-event, trace-driven simulation in which the mobility trace determines \emph{where} requests arrive and the workload model determines \emph{what} is requested.
+
+\paragraph{Mapping users to edge nodes.}
+For each device $u$ and request timestamp $t_k$, we determine the associated AP by selecting the association interval $(\text{start}, \text{end})$ such that $\text{start} \le t_k \le \text{end}$. This yields $v_k$, the edge node receiving the request. The simulation advances in chronological order of events.
+
+\paragraph{Service model.}
+For each request $(t_k, v_k, c_k, s_k)$, the simulator applies a fixed service procedure shared across all policies:
+\begin{enumerate}
+    \item \textbf{Local cache lookup:} if $c_k$ is stored at node $v_k$, the request is a local hit.
+    \item \textbf{Neighbor lookup (cooperation):} otherwise, the simulator checks one-hop neighbors $\mathcal{N}(v_k)$ (or two-hop, if configured). If a neighbor stores $c_k$, the request is served from that neighbor (neighbor hit).
+    \item \textbf{Origin fetch:} if no cache contains $c_k$ within the search radius, the content is fetched from the origin/cloud (backhaul miss).
+\end{enumerate}
+
+\paragraph{Latency and cost accounting.}
+We associate latency/cost with each serving source:
+\begin{itemize}
+    \item Local hit: $L_{\text{local}}$,
+    \item Neighbor hit: $L_{\text{nbr}}(v_k,j)$ derived from graph distance or edge weight (e.g., proportional to handoff weight or a configured link-latency model),
+    \item Origin fetch: $L_{\text{origin}}$ and backhaul traffic increment by $s_k$.
+\end{itemize}
+This enables evaluation beyond hit ratio, including latency and backhaul usage.
+
+\paragraph{Cache updates and decision cadence.}
+Caching policies may update:
+\begin{itemize}
+    \item \textbf{Per-request:} update cache state after each event (typical for LRU/LFU), or
+    \item \textbf{Windowed:} update caches every fixed interval $\Delta$ (e.g., 1--10 minutes), which is suitable for learning-based policies.
+\end{itemize}
+For windowed updates, we aggregate per-node demand statistics within each window to form features and compute cache placement for the next window.
+
+\subsection{Baseline Caching Policies}
+We implement representative baselines for comparison:
+\begin{itemize}
+    \item \textbf{Node-local caching:} LRU, LFU,
+    \item \textbf{Heuristic cooperative caching:} neighbor-assisted caching (serve from neighbor if available; optional diversity heuristic to reduce redundancy),
+    \item \textbf{Local learning-based caching:} per-node popularity prediction (e.g., time-series model) followed by top-$K$ placement.
+\end{itemize}
+
+\subsection{Topology-Aware Cooperative Caching via Graph Learning}
+We propose a topology-aware framework where caching decisions are learned jointly using the graph $G$.
+
+Let $x_i$ denote node features for edge node $i$ (recent demand statistics, cache occupancy, neighbor hit rates, etc.). A graph learning model computes node embeddings:
+\[
+h_i = \mathrm{GNN}(G, X)_i,
+\]
+where $X = \{x_i\}_{i \in V}$. For content $c$, we define a cache score:
+\[
+s_{i,c} = f(h_i, e_c),
+\]
+where $e_c$ is a content embedding and $f(\cdot)$ is a scoring function (e.g., inner product). Node $i$ caches the top-$K$ items ranked by $s_{i,c}$ subject to capacity constraints. This enables decentralized execution while incorporating topological context through learned message passing.
+
+\subsection{Evaluation Metrics}
+We evaluate all policies under identical trace-driven simulation settings using:
+\begin{itemize}
+    \item Cache Hit Ratio (CHR) and Neighbor Hit Ratio,
+    \item Average latency (and tail latency, if reported),
+    \item Backhaul traffic volume (bytes fetched from origin),
+    \item Redundancy/diversity metrics across caches (replication rate, unique cached items),
+    \item Scalability with respect to number of nodes and cache capacity.
+\end{itemize}
+We conduct sensitivity analyses over mobility intensity, cache size, cooperation radius, and demand drift to characterize when topology-aware policies provide the largest benefit.

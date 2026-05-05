@@ -1,0 +1,147 @@
+\documentclass[11pt]{article}
+
+% -----------------------------------
+% Page Layout
+% -----------------------------------
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{needspace}
+% -----------------------------------
+% Fonts (Clean IEEE-like)
+% -----------------------------------
+\usepackage{newtxtext,newtxmath} % Times-like font
+\usepackage{float}
+% -----------------------------------
+% Spacing
+% -----------------------------------
+
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,shapes.geometric}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\setlength{\textfloatsep}{0pt}
+\setlength{\abovecaptionskip}{0pt}
+\setlength{\belowcaptionskip}{0pt}
+\raggedbottom \setlength{\parskip}{0em}
+
+
+\usepackage{titlesec}
+
+
+\titlespacing*{\section}
+  {0pt}{0em}{0em}
+
+
+\usepackage{setspace}
+\setstretch{1.2}  % adjust 1.2–1.4 as needed
+\setlength{\parskip}{0.6em}
+\setlength{\parindent}{0pt}
+
+
+% \makeatletter
+% \renewcommand{\section}{\@startsection
+%   {section}{1}{0mm}
+%   {-\baselineskip}
+%   {0.5\baselineskip}
+%   {\normalfont\large\bfseries}}
+% \makeatother
+
+\raggedbottom
+\clubpenalty=1000
+\widowpenalty=1000
+
+
+
+% -----------------------------------
+% Packages
+% -----------------------------------
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    citecolor=black,
+    urlcolor=black
+}
+
+% ---------- Title ----------
+\title{Learning Topology-Aware Cooperative Caching Policies for IoT Edge Networks}
+\author{
+    Abdullah Al Mujahid, Asir Abrar, Monideepa Kundu Sinthi
+}
+\date{April 02, 2026}
+\usepackage{titling}
+
+% Tighten vertical spacing inside title block
+\pretitle{\begin{center}\Large\bfseries}
+\posttitle{\par\end{center}\vspace{-1.5em}}
+
+\preauthor{\begin{center}\normalsize}
+\postauthor{\par\end{center}\vspace{-2em}}
+
+\predate{\begin{center}\normalsize}
+\postdate{\par\end{center}\vspace{-2em}}
+
+\setlength{\droptitle}{-0.8cm} % optional: pulls whole block upward
+
+
+
+\begin{document}
+
+
+
+\begingroup
+\setstretch{0.90} % prevent your 1.5 spacing from inflating the title block
+\maketitle
+\endgroup
+
+\begin{abstract}
+This project studies cooperative content caching for IoT edge networks whose effective topology changes because users move among access points. We model edge nodes as a weighted mobility graph, synthesize content demand with Zipf popularity and spatial locality, and optimize cache placement under access latency, redundancy, replication, and relocation costs. The proposed pipeline combines a topology-aware greedy warm start with a compact Deep Q-Network (DQN) refinement stage. A reproducible implementation is provided with dataset access tooling, trace-compatible fallback generation, graph construction, perturbation sampling, baselines, metrics, and report-ready result assets. In the measured run included with this repository, the hybrid method achieves the lowest objective value across all perturbation settings and improves the nominal objective from 2.633 for topology-aware greedy to 2.414 while maintaining a 0.994 hit ratio.
+\end{abstract}
+
+\textbf{Keywords:} edge caching, IoT, cooperative caching, mobility graph, Zipf demand, deep reinforcement learning, DQN.
+
+
+\needspace{4\baselineskip}
+% \input{introduction_2}
+\needspace{4\baselineskip}
+\needspace{4\baselineskip}
+\input{intro_p2}
+\input{caching_iot_2}
+\input{realated_work_2}
+% \input{sota_2}
+\input{sota3}
+% \input{problem}
+% \input{problem2}
+% \input{problem_p2}
+\input{problem_p23}
+\input{dataset}
+% \input{proposed}
+% \input{proposed2}
+\input{methods_p2}
+\input{eval}
+\input{discussion}
+
+
+
+\section{Conclusion}
+
+This work presents a topology-aware cooperative caching framework for dynamic IoT edge networks. The system is modeled as a mobility-induced graph whose nodes are AP-like edge caches and whose weighted edges represent user handoff relationships. Cache placement is optimized with a unified objective that combines access cost, replication cost, topology-aware redundancy, and relocation overhead.
+
+The project contributes both a methodology and an executable implementation. The methodology defines graph construction, Zipf-locality demand generation, perturbation sampling, greedy marginal-gain placement, DQN refinement, and evaluation metrics. The implementation provides dataset access tooling, a trace-compatible fallback, reusable Python modules, baselines, measured result files, and generated LaTeX tables and figures.
+
+The measured results show that the hybrid Greedy + DQN policy achieves the lowest objective across all tested perturbation rates. In the nominal setting, it improves the objective from 2.633 for topology-aware greedy to 2.414 while maintaining a 0.994 hit ratio. Under stronger perturbation, the hybrid method remains consistently better than greedy alone and substantially better than random, local popularity, and global popularity baselines.
+
+The most important limitation is dataset access. The official Dartmouth campus dataset is citeable and publicly described, but direct raw movement download was not available through legacy unauthenticated URLs during this implementation. The repository therefore records official access pages and uses a deterministic fallback trace for reproducibility. Future work should rerun the same pipeline on the raw DataPort archive, add temporal train/test splits, evaluate online replacement baselines, and explore graph neural policies for larger and more heterogeneous edge networks.
+
+Overall, the study demonstrates that structural awareness and bounded learning-based refinement can work together effectively: the graph-aware greedy stage supplies a strong and interpretable placement, while the DQN stage makes targeted improvements without excessive cache relocation.
+
+% ---------- References ----------
+\bibliographystyle{IEEEtran}
+\bibliography{reference}
+
+\end{document}

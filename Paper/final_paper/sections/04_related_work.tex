@@ -1,0 +1,40 @@
+\section{Related Work}
+
+\subsection{Classical and Cooperative Caching}
+
+Cache replacement and content-placement strategies have a long history, including LRU, LFU, FIFO, popularity-based methods, and cost-aware variants \cite{Podlipnig2003}. These approaches are useful baselines but are often node-local. Cooperative wireless caching work such as FemtoCaching demonstrates that coordinated placement among helpers can substantially improve delivery efficiency \cite{Shanmugam2013,Golrezaei2014JSAC}. Coded caching further shows that coordinated placement and delivery can improve theoretical efficiency \cite{MaddahAli2014}. However, many of these formulations assume known helper relationships or static topology.
+
+\subsection{Mobility-Aware Caching}
+
+Mobility-aware caching recognizes that user movement shapes future demand. Prior work has studied mobility prediction and mobile edge networks \cite{Wang2017Mobility}. Opportunistic and delay-tolerant caching also uses contact patterns or social context to guide content distribution \cite{Mardham2017,Mardham2018,Cabaniss2014}. These methods motivate the use of mobility information but often rely on predefined social or encounter heuristics rather than explicitly optimizing over a mobility-derived AP graph.
+
+\subsection{Learning-Based Edge Caching}
+
+Learning-based caching is attractive because demand and topology change over time. Deep reinforcement learning has been applied to vehicular and edge caching problems \cite{Chen2021TMC,zhou2023distributed,jiang2026cooperative}. DQN and Double DQN introduced replay buffers, target networks, and stabilized Q-learning for discrete action spaces \cite{mnih2015dqn,vanhasselt2016double}. Multi-agent DRL has also been proposed for cooperative edge caching, but topology is often implicit in communication or reward design rather than represented directly as a graph.
+
+\subsection{Graph and Knowledge-Based Methods}
+
+Graph neural networks have shown promise in communication-network modeling and optimization \cite{Rusek2019,Jiang2022Survey}. Knowledge-graph approaches have also been explored for cooperative caching in MEC-enabled heterogeneous networks \cite{wang2024knowledge}. The present work is graph-aware but intentionally lightweight: it uses explicit graph features and a DQN refiner rather than a full GNN. This design makes the pipeline easier to run locally while preserving a clear path toward graph neural extensions.
+
+\subsection{Position of This Work}
+
+The distinctive aspect of this project is the combination of mobility-derived topology, stochastic perturbation, relocation-aware objective design, executable greedy and DQN policies, and adaptive policy selection. Rather than claiming that one method is universally best, the paper evaluates how policies behave under different perturbation regimes and selects among them using validation samples.
+
+\begin{table}[t]
+\centering
+\caption{Comparison of related work themes and this project.}
+\label{tab:related_comparison}
+\begin{tabular}{p{0.24\textwidth}p{0.30\textwidth}p{0.32\textwidth}}
+\toprule
+Research theme & Typical strength & Gap addressed here \\
+\midrule
+Classical cache replacement \cite{Podlipnig2003} & Simple online operation & Does not explicitly coordinate neighboring edge caches. \\
+Femto/helper caching \cite{Shanmugam2013,Golrezaei2014JSAC} & Cooperative placement gains & Often assumes static helper relationships. \\
+Mobility-aware caching \cite{Wang2017Mobility,Mardham2018} & Uses movement or contact patterns & Usually relies on predictions or social heuristics rather than a direct AP handoff graph. \\
+DRL caching \cite{mnih2015dqn,zhou2023distributed} & Adapts to non-stationarity & Can be expensive if trained over the full placement space without a warm start. \\
+Graph learning for networks \cite{Rusek2019,Jiang2022Survey} & Models relational structure & Often not tied to a complete reproducible caching pipeline. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Adaptive TACC is positioned between heuristic graph-aware optimization and learning-based control. It does not claim to be a full GNN system. Instead, it uses graph features and validation-driven policy selection as a practical step toward topology-aware learning.

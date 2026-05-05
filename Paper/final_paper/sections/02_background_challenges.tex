@@ -1,0 +1,50 @@
+\section{Background and Challenges}
+
+\subsection{IoT Edge Caching}
+
+In an IoT edge network, devices generate requests through nearby infrastructure such as APs, gateways, base stations, or edge servers. If the requested object is cached locally, the request is served with low delay. If not, the node may retrieve the object from a neighboring edge cache or from a remote origin. Cooperative caching improves coverage by letting nodes use nearby caches, but cooperation is not free: retrieving from another node has communication delay, and storing duplicate objects in nearby caches can waste limited storage.
+
+\subsection{Mobility-Induced Topology}
+
+The key feature of this project is the use of mobility as a topology signal. APs that exchange many users through handoffs are not merely physically close; they are behaviorally related. Their users may request similar content, and content missed at one AP may soon be needed at another. Handoff graphs and neighbor graphs have been used in WLAN mobility analysis and handoff optimization \cite{kim2005mobility_wifi_ap,shin2004neighbor_graphs}. This project reuses that idea for cooperative caching: mobility-derived edges become the structure over which cache cooperation is evaluated.
+
+\subsection{Why Local Caching Is Insufficient}
+
+Node-local policies such as local popularity caching are scalable and simple, but they ignore the fact that nearby nodes can cooperate. If every AP stores only its own top objects, the system may miss opportunities to diversify neighboring caches. Conversely, if every AP stores the same globally popular objects, local hit rates may improve for the most popular objects, but many requests still go to the origin because the cooperative cache footprint is small. Effective edge caching must balance popularity, diversity, and graph distance.
+
+\subsection{Dynamic Perturbations}
+
+The effective edge graph may change because APs become unavailable, users move differently, or links become less useful. A robust policy should remain useful under perturbed graphs, not only under the nominal graph. However, adapting cache placement has a cost. Rewriting caches too frequently consumes bandwidth and storage operations, and it may be infeasible for resource-constrained edge devices. This motivates an objective with both access efficiency and relocation stability.
+
+\subsection{Partial Observability of Demand}
+
+The Dartmouth campus WLAN trace provides AP association behavior but not content requests. This is common in mobility datasets, where network-level traces do not include application-layer object identities. A research-level caching study must therefore distinguish between real mobility structure and synthetic demand assumptions. In this paper, the mobility topology is trace-compatible, while content demand is generated using a transparent Zipf-locality model.
+
+\subsection{Design Requirements}
+
+The challenges above translate into five design requirements:
+\begin{itemize}
+    \item \textbf{Topology awareness}: the policy must reason about which nodes can cooperate cheaply.
+    \item \textbf{Demand locality}: nodes should be allowed to have different content preferences.
+    \item \textbf{Diversity control}: neighboring nodes should not blindly store identical objects.
+    \item \textbf{Perturbation robustness}: placements should be evaluated under graph changes.
+    \item \textbf{Relocation stability}: adaptation should avoid excessive cache rewriting.
+\end{itemize}
+
+\begin{table}[t]
+\centering
+\caption{Caching challenges and corresponding modeling choices in Adaptive TACC.}
+\label{tab:challenge_mapping}
+\begin{tabular}{p{0.30\textwidth}p{0.58\textwidth}}
+\toprule
+Challenge & Modeling choice \\
+\midrule
+User mobility changes demand relationships & AP handoff graph with weighted edges. \\
+Limited cache capacity & Binary placement with per-node capacity \(K_i\). \\
+Neighbor duplication wastes storage & Edge-weighted redundancy penalty. \\
+Topology changes over time & Node and edge perturbation sampler. \\
+Cache rewriting has operational cost & Relocation term relative to a reference placement. \\
+No content logs in mobility trace & Zipf-locality synthetic demand with fixed parameters. \\
+\bottomrule
+\end{tabular}
+\end{table}

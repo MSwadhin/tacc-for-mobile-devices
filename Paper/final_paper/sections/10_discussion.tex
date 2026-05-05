@@ -1,0 +1,13 @@
+\section{Discussion}
+
+The main finding is that topology-awareness is useful but not sufficient by itself. The greedy policy explicitly optimizes the graph-aware objective and substantially improves over local and global popularity. However, moderate perturbation changes the relative value of diversity. In this regime, diversified popularity has better coverage, even though it is less explicitly cost-aware. This explains why Adaptive TACC is needed.
+
+The DQN result is also nuanced. It does not solve the entire placement problem from scratch. Instead, it performs bounded local search around a greedy warm start. This is appropriate for a combinatorial caching problem because the full binary placement space is large. The accepted-action rule makes the learning component conservative: DQN can improve the placement, but it cannot degrade it during inference.
+
+The relocation term plays an important stabilizing role. Without a relocation penalty, a learning agent could reduce access cost by frequently rewriting caches. The reported DQN placement changes only 0.200 objects per active node in the nominal setting, yet it improves the objective. This suggests that small targeted modifications can be enough when the warm start is strong.
+
+The adaptive selector should be viewed as a practical control layer. Edge systems can often estimate whether the network is stable, moderately changing, or highly perturbed. The selector uses held-out perturbation samples and a high-churn volatility penalty to decide which placement family is appropriate. This is more honest than claiming that DQN, greedy, or diversity is universally best.
+
+The results also reveal why research-level evaluation must include strong baselines. Diversified popularity is simple, but it is not weak. It wins under moderate perturbation because it fills the cooperative graph with a wider content footprint. If the evaluation only compared against random, local, and global popularity, the method would appear stronger but the scientific conclusion would be less useful. Including a competitive diversity baseline exposed the need for policy selection.
+
+Another implication is that cache-objective design should be tied to operational assumptions. If storage is cheap and churn is moderate, diversity can dominate. If updates and replication are expensive, lower-replica graph-aware placements are more attractive. The objective weights \(\lambda\), \(\beta\), and \(\mu\) are therefore not universal constants; they should be configured according to deployment cost.

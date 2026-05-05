@@ -1,0 +1,157 @@
+\section{Evaluation}
+
+\subsection{Experimental Setup}
+
+The final experiment uses seed 11, 20 AP nodes, 190 mobility edges, 48 content objects, cache capacity 5, Zipf parameter \(\alpha=0.85\), locality multiplier 2.8, and 12 evaluation samples per perturbation rate. Perturbation rates are \(p\in\{0.00,0.05,0.10,0.15\}\). The DQN refiner uses 85 episodes and 16 steps per episode.
+
+\begin{table}[t]
+\centering
+\caption{Experimental parameters for the final run.}
+\label{tab:parameters}
+\begin{tabular}{lr}
+\toprule
+Parameter & Value \\
+\midrule
+AP nodes & 20 \\
+Mobility edges & 190 \\
+Catalog size & 48 \\
+Cache capacity & 5 objects/node \\
+Perturbation rates & 0.00, 0.05, 0.10, 0.15 \\
+Evaluation samples/rate & 12 \\
+DQN episodes & 85 \\
+DQN steps/episode & 16 \\
+Runtime & 145.5 seconds \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Baselines}
+
+The evaluation compares seven policies:
+\begin{itemize}
+    \item \textbf{Random}: random feasible content placement.
+    \item \textbf{Local Popularity}: each AP caches its local top-\(K\) objects.
+    \item \textbf{Global Popularity}: all APs cache the same global top-\(K\) objects.
+    \item \textbf{Diversified Popularity}: APs cache shifted slices of global popularity to increase cooperative diversity.
+    \item \textbf{Topology-Aware Greedy}: marginal-gain graph-aware placement.
+    \item \textbf{Greedy + DQN}: DQN-refined greedy placement.
+    \item \textbf{Adaptive TACC}: validation-based selector among strong candidate policies.
+\end{itemize}
+
+\subsection{Metrics}
+
+Metrics include objective, access cost, total hit ratio, local hit ratio, cooperative hit ratio, origin miss ratio, replication cost, redundancy ratio, relocation cost, and objective standard deviation across perturbation samples. Lower objective and access cost are better; higher hit ratio is better.
+
+The hit-ratio decomposition is defined as follows. Local hit ratio is the probability mass served at the requesting node. Cooperative hit ratio is the probability mass served by another active node in the perturbed graph. Origin miss ratio is the remaining probability mass that must be served from the origin. These three quantities sum to approximately one after normalization. This decomposition is more informative than a single hit ratio because it distinguishes local storage success from cooperative network coverage.
+
+Objective standard deviation is reported because perturbation samples can vary substantially, especially when node removals disconnect useful holders. A policy with low mean objective but high variance may be risky in high-churn environments. This is why Adaptive TACC includes a validation variance term and a high-churn replication penalty.
+
+The paper-ready tables and figures in this section are generated directly from \texttt{results/final/summary\_metrics.csv} by \texttt{scripts/generate\_paper\_visuals.py}. This keeps the manuscript synchronized with the executable experiment output.
+
+\begin{table}[t]
+\centering
+\caption{Measured performance at the nominal perturbation setting. Lower objective and access cost are better; higher hit ratio is better.}
+\label{tab:measured_results}
+\begin{tabular}{lrrrr}
+\toprule
+Policy & Objective & Access Cost & Hit Ratio & Relocation \\
+\midrule
+Greedy + DQN Refinement & 2.414 & 2.324 & 0.994 & 0.200 \\
+Adaptive TACC Selector & 2.414 & 2.324 & 0.994 & 0.200 \\
+Topology-Aware Greedy & 2.633 & 2.554 & 0.987 & 0.000 \\
+Diversified Popularity & 2.739 & 2.521 & 0.987 & 0.000 \\
+Random & 6.723 & 6.115 & 0.877 & 0.000 \\
+Local Popularity & 16.728 & 13.533 & 0.638 & 0.000 \\
+Global Popularity & 24.925 & 20.325 & 0.432 & 0.000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{Objective values across topology perturbation rates for the strongest policies. Lower is better.}
+\label{tab:perturbation_results}
+\begin{tabular}{lrrrr}
+\toprule
+Policy & $p=0.00$ & $p=0.05$ & $p=0.10$ & $p=0.15$ \\
+\midrule
+Diversified Popularity & 2.739 & 3.472 & 3.249 & 5.252 \\
+Topology-Aware Greedy & 2.633 & 4.013 & 4.336 & 5.172 \\
+Greedy + DQN Refinement & 2.414 & 3.775 & 4.082 & 4.988 \\
+Adaptive TACC Selector & 2.414 & 3.472 & 3.249 & 4.988 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\input{generated/table_compact_metrics}
+\input{generated/fig_objective_trends}
+\input{generated/fig_hit_breakdown}
+\input{generated/fig_cost_components}
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[x=1cm,y=1cm]
+\draw[->] (0.7,0.55) -- (7.6,0.55) node[right] {Perturbation rate};
+\draw[->] (0.7,0.55) -- (0.7,3.1) node[above] {Objective};
+\node[below] at (1.00,0.55) {0.00};
+\node[below] at (3.00,0.55) {0.05};
+\node[below] at (5.00,0.55) {0.10};
+\node[below] at (7.00,0.55) {0.15};
+\draw[orange, thick] (1.00,0.80) -- (3.00,0.91) -- (5.00,0.87) -- (7.00,1.17);
+\draw[teal, thick] (1.00,0.78) -- (3.00,0.98) -- (5.00,1.03) -- (7.00,1.15);
+\draw[purple, thick] (1.00,0.75) -- (3.00,0.95) -- (5.00,0.99) -- (7.00,1.13);
+\draw[red, very thick] (1.00,0.75) -- (3.00,0.91) -- (5.00,0.87) -- (7.00,1.13);
+\fill[red] (1.00,0.75) circle (1.8pt);
+\fill[red] (3.00,0.91) circle (1.8pt);
+\fill[red] (5.00,0.87) circle (1.8pt);
+\fill[red] (7.00,1.13) circle (1.8pt);
+\draw[orange, thick] (7.9,1.05) -- (8.35,1.05);
+\node[right] at (8.4,1.05) {Diversified};
+\draw[teal, thick] (7.9,1.45) -- (8.35,1.45);
+\node[right] at (8.4,1.45) {Greedy};
+\draw[purple, thick] (7.9,1.85) -- (8.35,1.85);
+\node[right] at (8.4,1.85) {DQN};
+\draw[red, very thick] (7.9,2.25) -- (8.35,2.25);
+\node[right] at (8.4,2.25) {Adaptive TACC};
+\end{tikzpicture}
+\caption{Objective trend for the strongest policies. Adaptive TACC follows DQN-refined greedy at \(p=0.00\) and \(p=0.15\), and follows diversified placement at \(p=0.05\) and \(p=0.10\).}
+\label{fig:objective_perturbation}
+\end{figure}
+
+\subsection{Results Analysis}
+
+At nominal perturbation, DQN refinement improves topology-aware greedy from 2.633 to 2.414, an 8.3\% objective reduction. It also improves the hit ratio from 0.987 to 0.994. This answers RQ3: learning-based local refinement adds value when initialized from a strong topology-aware placement.
+
+The stronger result appears across perturbation regimes. Diversified popularity is best at \(p=0.05\) and \(p=0.10\), while DQN-refined greedy is best at \(p=0.00\) and \(p=0.15\). This validates RQ4: one static policy is not sufficient. Adaptive TACC selects the correct candidate in these tested regimes and therefore achieves the best or tied-best objective at every perturbation rate.
+
+Local and global popularity baselines perform poorly for different reasons. Local popularity has strong local hit ratio but weak cooperative hit ratio because it ignores neighboring caches. Global popularity creates excessive duplication and has the lowest cooperative coverage. Random placement performs better than local popularity in this dense synthetic graph because it accidentally improves content diversity, but it remains far weaker than graph-aware and adaptive policies.
+
+\begin{table}[t]
+\centering
+\caption{Policy chosen by Adaptive TACC at each perturbation rate.}
+\label{tab:selected_policy}
+\begin{tabular}{lr}
+\toprule
+Perturbation rate & Selected policy \\
+\midrule
+0.00 & Greedy + DQN Refinement \\
+0.05 & Diversified Popularity \\
+0.10 & Diversified Popularity \\
+0.15 & Greedy + DQN Refinement \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:selected_policy} summarizes the selector behavior. The switch is meaningful. In stable topology, DQN-refined greedy benefits from precise cost-aware placement. In moderate perturbation, wider diversity reduces origin misses. In high perturbation, the selector returns to DQN-refined greedy because the volatility penalty discourages the fully populated diversified placement.
+
+\input{generated/fig_selector_pie}
+
+\subsection{Answering the Research Questions}
+
+\textbf{RQ1:} The AP handoff graph provides a usable cooperative topology. The final graph contains 20 active AP nodes and 190 weighted edges.
+
+\textbf{RQ2:} Topology-aware and adaptive policies outperform node-local and global popularity baselines by a large margin. At \(p=0.00\), local popularity has objective 16.728, while topology-aware greedy has 2.633 and Adaptive TACC has 2.414.
+
+\textbf{RQ3:} DQN refinement improves greedy placement under nominal and high-churn regimes. At \(p=0.15\), DQN refinement improves objective from 5.172 to 4.988.
+
+\textbf{RQ4:} One static placement is not sufficient. Adaptive TACC selects DQN-refined greedy at \(p=0.00\) and \(p=0.15\), but diversified placement at \(p=0.05\) and \(p=0.10\). This achieves best or tied-best objective across all tested perturbation rates.

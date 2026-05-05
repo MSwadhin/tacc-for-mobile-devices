@@ -1,0 +1,24 @@
+    Dartmouth/CRAWDAD campus dataset access note
+    ===========================================
+
+    The current project uses the Dartmouth campus WLAN mobility trace as the intended
+    real-world source for AP handoff topology construction. The public Dartmouth
+    author page now points readers to IEEE DataPort. Legacy direct CRAWDAD download
+    paths checked during implementation returned HTTP 404. IEEE DataPort provides the
+    dataset landing page, but programmatic download may require browser interaction,
+    account access, or DataPort terms acceptance.
+
+    Official sources checked:
+    - https://www.cs.dartmouth.edu/~dfk/research/kotz-dartmouth-campus-20090909/index.html
+- https://doi.org/10.15783/C7F59T
+- https://ieee-dataport.org/open-access/crawdad-dartmouthcampus-v-2004-11-09
+
+    Reproducibility fallback:
+    When data/raw/dartmouth_movement.csv is absent, scripts/run_experiments.py creates
+    a deterministic Dartmouth-like synthetic AP movement trace with columns:
+    user_id,timestamp,ap. This fallback preserves the project pipeline and is clearly
+    marked in results/run_metadata.json under used_synthetic_fallback.
+
+    To use a manually downloaded real trace, convert it to CSV with columns
+    user_id,timestamp,ap and save it as data/raw/dartmouth_movement.csv, or pass its
+    path with scripts/run_experiments.py --trace.

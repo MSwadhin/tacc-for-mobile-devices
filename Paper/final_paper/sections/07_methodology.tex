@@ -1,0 +1,123 @@
+\section{Methodology}
+
+\subsection{Pipeline Overview}
+
+The final methodology has six stages:
+\begin{enumerate}
+    \item load a movement trace or deterministic fallback;
+    \item construct a weighted handoff graph;
+    \item generate Zipf-locality demand;
+    \item compute baseline and topology-aware placements;
+    \item refine greedy placement with DQN;
+    \item select the best policy for the perturbation regime using held-out validation samples.
+\end{enumerate}
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+    node distance=1.1cm,
+    block/.style={draw, rounded corners, minimum width=3.5cm, minimum height=0.75cm, align=center},
+    arrow/.style={-{Latex[length=2mm]}, thick}
+]
+\node[block] (trace) {Movement Trace};
+\node[block, below=of trace] (graph) {Handoff Graph};
+\node[block, below=of graph] (demand) {Zipf-Locality Demand};
+\node[block, below left=0.7cm and 1.7cm of demand] (greedy) {Topology-Aware Greedy};
+\node[block, below=0.7cm of demand] (diverse) {Diversified Placement};
+\node[block, below right=0.7cm and 1.7cm of demand] (dqn) {DQN Refinement};
+\node[block, below=2.0cm of demand] (selector) {Adaptive TACC Selector};
+\node[block, below=of selector] (eval) {Perturbation Evaluation};
+\draw[arrow] (trace) -- (graph);
+\draw[arrow] (graph) -- (demand);
+\draw[arrow] (demand) -- (greedy);
+\draw[arrow] (demand) -- (diverse);
+\draw[arrow] (demand) -- (dqn);
+\draw[arrow] (greedy) -- (selector);
+\draw[arrow] (diverse) -- (selector);
+\draw[arrow] (dqn) -- (selector);
+\draw[arrow] (selector) -- (eval);
+\end{tikzpicture}
+\caption{Adaptive TACC pipeline. The final policy is selected from multiple candidate placements rather than assuming one static policy is best under all perturbation regimes.}
+\label{fig:pipeline}
+\end{figure}
+
+\subsection{Graph Construction}
+
+The graph is undirected in the implementation. Each AP is a node. Handoff counts between APs are aggregated across users, and each edge stores a raw handoff count, an inverse-count latency weight, and a normalized redundancy weight. Shortest-path distances over latency weights determine cooperative retrieval cost.
+
+\subsection{Topology Perturbation}
+
+For perturbation rate \(p\), each node is removed with probability \(p\), and each edge is removed with probability \(p/2\). The largest connected component is retained. This perturbation model is simple, but it gives a controlled way to test robustness and policy selection as topology becomes less stable.
+
+\subsection{Topology-Aware Greedy Placement}
+
+The greedy algorithm starts with an empty placement and repeatedly adds the feasible node-content pair with largest expected objective reduction. Candidate gains are estimated over sampled perturbed graphs:
+\[
+\Delta(i,c|x)=
+\mathbb{E}_{\tilde{G}\sim\mathcal{P}(G)}
+\left[J(x,\tilde{G})-J(x^{(i,c)},\tilde{G})\right].
+\]
+To keep runtime practical, candidate contents are limited to high-demand objects at each node.
+
+\begin{algorithm}[t]
+\caption{Topology-Aware Greedy Placement}
+\label{alg:greedy_final}
+\begin{algorithmic}[1]
+\Require Graph \(G\), demand \(P\), capacity \(K\), perturbation sampler \(\mathcal{P}\)
+\State Initialize placement \(x\gets 0\)
+\While{some node has free cache capacity}
+    \State bestGain \(\gets 0\), bestPair \(\gets \varnothing\)
+    \For{each feasible node-content pair \((i,c)\)}
+        \State Estimate \(\Delta(i,c|x)\) over sampled perturbations
+        \If{\(\Delta(i,c|x)>\) bestGain}
+            \State bestGain \(\gets \Delta(i,c|x)\), bestPair \(\gets (i,c)\)
+        \EndIf
+    \EndFor
+    \If{bestPair is empty}
+        \State \textbf{break}
+    \EndIf
+    \State Add bestPair to placement \(x\)
+\EndWhile
+\State \Return \(x\)
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{DQN Refinement}
+
+The DQN state concatenates the binary cache placement matrix, the demand matrix, and graph features. Graph features include normalized degree, weighted degree, and closeness centrality. The action space is a node-content toggle. If adding an object to a full cache, the lowest-demand cached object at that node is evicted. The reward is objective improvement:
+\[
+r_t=J(x_t,\tilde{G}_t)-J(x_{t+1},\tilde{G}_t).
+\]
+The network has two hidden layers with ReLU activations, replay-buffer sampling, a target network, discount factor 0.92, learning rate 0.001, and epsilon-greedy exploration. During inference, a DQN action is accepted only if it improves the measured objective. This preserves the greedy warm start and bounds harmful relocation.
+
+\subsection{Adaptive TACC Selector}
+
+The experiments reveal that the best placement type depends on perturbation rate. Adaptive TACC therefore selects among diversified popularity, topology-aware greedy, and DQN-refined greedy. For each candidate policy, it evaluates held-out perturbation samples and computes a selector score:
+\[
+S(\pi)=\bar{J}_{\text{val}}(\pi)+0.5\sigma_{\text{val}}(\pi)+\rho(p)R(\pi),
+\]
+where \(\bar{J}_{\text{val}}\) is validation objective, \(\sigma_{\text{val}}\) is validation standard deviation, \(R(\pi)\) is average replication cost, and \(\rho(p)\) is a high-churn penalty activated for larger perturbation rates. The selected policy is
+\[
+\pi^*=\arg\min_{\pi}S(\pi).
+\]
+This selector gives the final method a research-level answer to RQ4: it adapts across regimes instead of forcing one static cache-placement policy to serve all topology conditions.
+
+\begin{algorithm}[t]
+\caption{Adaptive TACC Policy Selection}
+\label{alg:adaptive_selector}
+\begin{algorithmic}[1]
+\Require Candidate policies \(\Pi\), perturbation rate \(p\), validation sampler \(\mathcal{V}_p\)
+\For{each policy \(\pi \in \Pi\)}
+    \State Evaluate \(\pi\) on held-out perturbation samples from \(\mathcal{V}_p\)
+    \State Compute mean validation objective \(\bar{J}_{\pi}\)
+    \State Compute standard deviation \(\sigma_{\pi}\)
+    \State Compute high-churn penalty \(\rho(p)R(\pi)\)
+    \State \(S(\pi)\gets \bar{J}_{\pi}+0.5\sigma_{\pi}+\rho(p)R(\pi)\)
+\EndFor
+\State \Return \(\arg\min_{\pi\in\Pi} S(\pi)\)
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Why Selection Is Part of the Method}
+
+It may be tempting to treat the adaptive selector as an evaluation trick, but it is part of the caching method. In an operational edge system, the controller can estimate whether the current topology is stable, moderately perturbed, or highly volatile. A policy that maximizes coverage during moderate perturbation may be too replication-heavy under high churn, while a conservative placement may leave useful diversity unused under stable conditions. The selector encodes this operating-regime awareness explicitly.
