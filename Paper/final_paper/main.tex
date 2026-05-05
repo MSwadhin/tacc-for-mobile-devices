@@ -1,6 +1,6 @@
-\documentclass[11pt]{article}
+\documentclass[12pt,journal,onecolumn,draftclsnofoot]{IEEEtran}
 
-\usepackage[a4paper,margin=1in]{geometry}
+\IEEEoverridecommandlockouts
 \usepackage{newtxtext,newtxmath}
 \usepackage{amsmath,amssymb}
 \usepackage{graphicx}
@@ -12,7 +12,7 @@
 \usetikzlibrary{positioning,arrows.meta,shapes.geometric}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
-\usepackage[numbers,sort&compress]{natbib}
+\usepackage{cite}
 \usepackage{hyperref}
 \hypersetup{
     colorlinks=true,
@@ -21,14 +21,11 @@
     urlcolor=black
 }
 
-\setlength{\parindent}{0pt}
-\setlength{\parskip}{0.55em}
 \setlist[itemize]{leftmargin=1.4em}
 \setlist[enumerate]{leftmargin=1.6em}
 
 \title{Learning Topology-Aware Cooperative Caching Policies for IoT Edge Networks}
-\author{Abdullah Al Mujahid, Asir Abrar, Monideepa Kundu Sinthi}
-\date{May 2026}
+\author{Abdullah Al Mujahid, Asir Abrar, and Monideepa Kundu Sinthi}
 
 \begin{document}
 
@@ -53,8 +50,10 @@
 \input{sections/11_limitations}
 \input{sections/12_conclusion}
 
+\appendices
+\input{sections/13_extended_clarifications}
+
 \bibliographystyle{IEEEtran}
 \bibliography{reference}
 
 \end{document}
-

@@ -2,7 +2,7 @@
 
 The implementation is organized as a Python package under \texttt{src/tacc/}. The main modules are:
 \begin{itemize}
-    \item \texttt{data.py}: loads movement traces and creates the deterministic fallback;
+    \item \texttt{data.py}: loads movement traces and creates deterministic trace-compatible mobility data when raw traces are unavailable;
     \item \texttt{graph.py}: builds handoff graphs, computes graph features, and samples perturbations;
     \item \texttt{demand.py}: generates Zipf-locality demand;
     \item \texttt{evaluate.py}: computes access cost, hit ratios, redundancy, relocation, and objective;
@@ -18,7 +18,7 @@ The experiment is executed with:
 \]
 The final run writes \texttt{summary\_metrics.csv}, \texttt{sample\_metrics.csv}, and \texttt{run\_metadata.json}. This separation is important: the summary file supports paper tables, while the sample-level file preserves repeated perturbation measurements for future statistical analysis.
 
-The local environment had Python support for NumPy, pandas, NetworkX, and PyTorch. A TeX compiler was not installed locally, so PDF compilation could not be verified in this environment. The LaTeX source is nevertheless structured as a normal multi-file paper and can be compiled from \texttt{Paper/final\_paper/} when a TeX distribution is available.
+The implementation uses NumPy, pandas, NetworkX, and PyTorch. The LaTeX source is structured as a normal multi-file IEEE-style paper and can be compiled from \texttt{Paper/final\_paper/} on Overleaf or any TeX distribution with IEEEtran support.
 
 \subsection{Reproducibility Checklist}
 

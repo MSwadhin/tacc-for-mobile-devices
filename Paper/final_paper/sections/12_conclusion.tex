@@ -1,6 +1,6 @@
 \section{Conclusion}
 
-This paper developed a complete topology-aware cooperative caching project for IoT edge networks. Starting from a high-level draft, the work produced a formal problem statement, research questions, dataset strategy, executable pipeline, implemented baselines, DQN refinement, adaptive policy selection, measured results, and a final separated LaTeX paper.
+We developed a complete topology-aware cooperative caching framework for IoT edge networks. The study produced a formal problem statement, research questions, dataset strategy, executable pipeline, implemented baselines, DQN refinement, adaptive policy selection, and measured results.
 
 The results show that topology-aware and adaptive strategies outperform simple local and global caching baselines. DQN refinement improves a greedy warm start under nominal and high-churn conditions, while diversity-aware placement is strongest under moderate perturbation. Adaptive TACC combines these behaviors and achieves the best or tied-best objective across all tested perturbation rates.
 
@@ -8,4 +8,4 @@ The central lesson is that cooperative edge caching should not be designed as a 
 
 Future work should evaluate the same pipeline on the raw Dartmouth/IEEE DataPort archive, add temporal train-test splits, sweep content skew and cache capacity, compare against online LRU/LFU traces, and replace explicit graph features with a graph neural policy for larger deployments.
 
-The final repository now contains both the research paper and the executable artifacts needed to reproduce the reported tables. This closes the original gap between a conceptual draft and a complete project: the paper states research questions, the code implements the methods, the results come from actual runs, and the limitations identify what should be improved next.
+The final artifacts include both the research manuscript and the executable components needed to reproduce the reported tables. The resulting work connects research questions, implemented methods, measured results, and limitations in a single reproducible workflow.

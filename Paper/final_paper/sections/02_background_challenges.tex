@@ -6,7 +6,7 @@ In an IoT edge network, devices generate requests through nearby infrastructure 
 
 \subsection{Mobility-Induced Topology}
 
-The key feature of this project is the use of mobility as a topology signal. APs that exchange many users through handoffs are not merely physically close; they are behaviorally related. Their users may request similar content, and content missed at one AP may soon be needed at another. Handoff graphs and neighbor graphs have been used in WLAN mobility analysis and handoff optimization \cite{kim2005mobility_wifi_ap,shin2004neighbor_graphs}. This project reuses that idea for cooperative caching: mobility-derived edges become the structure over which cache cooperation is evaluated.
+The key modeling choice is the use of mobility as a topology signal. APs that exchange many users through handoffs are not merely physically close; they are behaviorally related. Their users may request similar content, and content missed at one AP may soon be needed at another. Handoff graphs and neighbor graphs have been used in WLAN mobility analysis and handoff optimization \cite{kim2005mobility_wifi_ap,shin2004neighbor_graphs}. We reuse that idea for cooperative caching: mobility-derived edges become the structure over which cache cooperation is evaluated.
 
 \subsection{Why Local Caching Is Insufficient}
 

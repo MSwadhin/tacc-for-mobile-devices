@@ -31,10 +31,9 @@ env/
 results/smoke*/
 
 # Large raw dataset/archive downloads.
-# Keep the small deterministic fallback CSV and final results tracked.
+# Keep the small deterministic mobility CSV and final results tracked.
 data/raw/*.tar
 data/raw/*.tar.gz
 data/raw/*.tgz
 data/raw/*.zip
 data/raw/*.gz
-

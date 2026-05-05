@@ -91,3 +91,18 @@ C_{\text{access}}
 \]
 subject to binary placement and cache-capacity constraints. The objective captures the central trade-off: aggressive replication can reduce origin misses but wastes storage and increases redundancy; conservative placement reduces storage overhead but may increase access cost; frequent relocation adapts to topology changes but may be operationally expensive.
 
+\subsection{Interpretation of Objective Terms}
+
+Each term in the objective has an operational interpretation. \(C_{\text{access}}\) measures how expensive it is to serve demand after cache placement. A lower access cost means more requests are served locally or by nearby edge nodes rather than by the origin. \(C_{\text{rep}}\) discourages storing too many objects when storage, update, or maintenance overhead matters. \(C_{\text{red}}\) discourages placing the same object at strongly related nodes unless the access-cost benefit justifies it. \(C_{\text{rel}}\) discourages excessive changes relative to a reference placement.
+
+The redundancy term deserves special attention. Duplicate content is not always bad: storing a highly popular object at several APs can improve local hit rate. However, duplicate content at strongly related APs can reduce the cooperative footprint, especially when storage is limited. The redundancy term therefore does not prohibit duplication; it makes duplication pay a cost proportional to mobility-derived relatedness.
+
+\subsection{Perturbation Semantics}
+
+In the perturbation model, node removal represents temporary AP unavailability, maintenance, failure, or a mobility window in which an AP does not participate in cooperative caching. Edge removal represents a weakened cooperative relationship or a loss of usable path between APs. After perturbation, the policy is evaluated only on active nodes. If a content object is stored only at removed nodes, it no longer contributes to cooperative service. If edges are removed, shortest-path latency can increase, and some cooperative retrievals may become origin misses.
+
+This semantics makes the evaluation stricter than a static-graph test. A placement that looks good on the nominal graph may fail if it relies too heavily on a few central nodes or narrow cooperative paths. Conversely, a placement with broader diversity may perform better under moderate graph changes because more content remains reachable.
+
+\subsection{Policy Families}
+
+The problem formulation supports several policy families. Node-local policies use only \(P_{i,c}\) and ignore \(G\). Global popularity policies use aggregate demand but ignore topology. Diversity-aware policies increase catalog coverage by avoiding identical top-\(K\) placements everywhere. Topology-aware greedy policies optimize the stochastic objective directly. Learning-based policies refine placements based on sampled experience. Adaptive TACC combines policy families by selecting the one that best matches the perturbation regime.

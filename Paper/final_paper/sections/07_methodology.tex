@@ -4,7 +4,7 @@
 
 The final methodology has six stages:
 \begin{enumerate}
-    \item load a movement trace or deterministic fallback;
+    \item load a movement trace or deterministic trace-compatible mobility data;
     \item construct a weighted handoff graph;
     \item generate Zipf-locality demand;
     \item compute baseline and topology-aware placements;
@@ -121,3 +121,15 @@ This selector gives the final method a research-level answer to RQ4: it adapts a
 \subsection{Why Selection Is Part of the Method}
 
 It may be tempting to treat the adaptive selector as an evaluation trick, but it is part of the caching method. In an operational edge system, the controller can estimate whether the current topology is stable, moderately perturbed, or highly volatile. A policy that maximizes coverage during moderate perturbation may be too replication-heavy under high churn, while a conservative placement may leave useful diversity unused under stable conditions. The selector encodes this operating-regime awareness explicitly.
+
+\subsection{Computational Complexity}
+
+The greedy stage is the most expensive deterministic component. If there are \(N\) nodes, \(M\) content objects, cache capacity \(K\), and \(S\) perturbation samples per marginal evaluation, a naive greedy implementation can require \(O(NKMNS)\) objective evaluations. The implementation reduces this cost by considering only high-demand candidate objects at each node and by using a small number of perturbation samples during greedy construction. This is appropriate for the target scale of the experiment and keeps the method reproducible on a normal workstation.
+
+The DQN stage has action space \(NM\), because each action toggles one node-content pair. The state vector contains the placement matrix, demand matrix, and graph features. Training cost depends on the number of episodes, steps per episode, and mini-batch size. Since DQN starts from the greedy placement, it does not need to learn the entire placement from scratch. This makes the learning stage a local refiner rather than a full combinatorial optimizer.
+
+The adaptive selector adds validation overhead, but only for a small set of candidate policies. In this study, the selector compares diversified popularity, topology-aware greedy, and DQN-refined greedy. This cost is small compared with training the DQN and constructing the greedy placement. More policies could be added, but each additional candidate increases validation cost.
+
+\subsection{Why the Results Are Plausible}
+
+The expected behavior of the policies follows directly from the objective. Global popularity should perform poorly because it duplicates the same content everywhere and provides little cooperative diversity. Local popularity should have a higher local hit ratio but lower cooperative hit ratio because each AP ignores neighboring caches. Diversified placement should perform well when reachability is good because it increases the number of distinct objects available in the cooperative graph. Topology-aware greedy should perform well when the graph structure is reliable because it explicitly optimizes access and redundancy. DQN-refined greedy should improve greedy when small replacements reduce objective without excessive relocation. Adaptive TACC should perform best when different perturbation regimes favor different candidate policies. The measured results follow these expectations.

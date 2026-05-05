@@ -4,25 +4,35 @@
 
 Cache replacement and content-placement strategies have a long history, including LRU, LFU, FIFO, popularity-based methods, and cost-aware variants \cite{Podlipnig2003}. These approaches are useful baselines but are often node-local. Cooperative wireless caching work such as FemtoCaching demonstrates that coordinated placement among helpers can substantially improve delivery efficiency \cite{Shanmugam2013,Golrezaei2014JSAC}. Coded caching further shows that coordinated placement and delivery can improve theoretical efficiency \cite{MaddahAli2014}. However, many of these formulations assume known helper relationships or static topology.
 
+Survey work on cellular and wireless caching emphasizes that content placement and delivery should be evaluated with respect to latency, backhaul cost, power, and spectral efficiency, rather than hit ratio alone \cite{Li2018CachingSurvey,Paschos2018RoleCaching}. This broader view motivates our multi-term objective. A cache policy that only maximizes hits can still be undesirable if it creates excessive replica maintenance, stores the same content across strongly connected APs, or requires frequent cache rewrites. Small-cell caching formulations have also shown that caching and routing decisions are coupled and computationally difficult \cite{Poularakis2014Approx}. We adopt the same general insight, but the routing relation in our study comes from a mobility-derived handoff graph rather than from a fixed small-cell coverage model.
+
 \subsection{Mobility-Aware Caching}
 
 Mobility-aware caching recognizes that user movement shapes future demand. Prior work has studied mobility prediction and mobile edge networks \cite{Wang2017Mobility}. Opportunistic and delay-tolerant caching also uses contact patterns or social context to guide content distribution \cite{Mardham2017,Mardham2018,Cabaniss2014}. These methods motivate the use of mobility information but often rely on predefined social or encounter heuristics rather than explicitly optimizing over a mobility-derived AP graph.
+
+The MEC literature also frames caching as one part of a broader edge-resource management problem that includes computation, radio access, mobility, and service placement \cite{Mao2017MEC}. This matters for IoT networks because edge caches are usually deployed together with sensing, analytics, and control workloads. Our formulation focuses on content placement, but it preserves terms that can later be connected to practical operational costs: access latency, replica maintenance, redundancy, and relocation. This makes the model easier to extend toward joint caching/offloading systems than a pure popularity-ranking baseline.
 
 \subsection{Learning-Based Edge Caching}
 
 Learning-based caching is attractive because demand and topology change over time. Deep reinforcement learning has been applied to vehicular and edge caching problems \cite{Chen2021TMC,zhou2023distributed,jiang2026cooperative}. DQN and Double DQN introduced replay buffers, target networks, and stabilized Q-learning for discrete action spaces \cite{mnih2015dqn,vanhasselt2016double}. Multi-agent DRL has also been proposed for cooperative edge caching, but topology is often implicit in communication or reward design rather than represented directly as a graph.
 
+Recent vehicular and UAV-assisted caching studies further show the importance of combining mobility prediction with cache optimization. Xu et al. study cooperative edge content caching with popularity prediction in UAV-assisted vehicular networks \cite{xu2026cooperative}. Cao et al. combine federated distillation and reinforcement learning for mobility-aware cooperative caching \cite{cao2025}. Zhao et al. jointly consider collaborative caching and offloading for vehicular edge computing \cite{zhao2026collaborative}. These works reinforce the value of mobility-aware learning, but they often focus on vehicular task/content dynamics rather than AP-level WLAN handoff topology.
+
+Bandit-based and federated caching methods also address non-stationarity with lower training overhead than deep RL. Dhara et al. use contextual and federated multi-armed bandits for cooperative real-time content retrieval in a space-air-ground disaster scenario \cite{dhara2026co}. Such methods are useful when the action space is small or naturally decomposed. In contrast, our placement space is a binary node-content matrix, so we use greedy structure to reduce the search space and DQN to refine local decisions.
+
 \subsection{Graph and Knowledge-Based Methods}
 
 Graph neural networks have shown promise in communication-network modeling and optimization \cite{Rusek2019,Jiang2022Survey}. Knowledge-graph approaches have also been explored for cooperative caching in MEC-enabled heterogeneous networks \cite{wang2024knowledge}. The present work is graph-aware but intentionally lightweight: it uses explicit graph features and a DQN refiner rather than a full GNN. This design makes the pipeline easier to run locally while preserving a clear path toward graph neural extensions.
 
+The graph-learning literature is especially relevant because a cache network is not naturally ordered like an image or sequence. A permutation-aware GNN could represent AP neighborhoods more cleanly than a flattened state vector. However, GNN training would introduce additional implementation and data requirements. We therefore use degree, weighted degree, and closeness centrality as explicit graph features. This choice keeps the experimental pipeline transparent while retaining topology information.
+
 \subsection{Position of This Work}
 
-The distinctive aspect of this project is the combination of mobility-derived topology, stochastic perturbation, relocation-aware objective design, executable greedy and DQN policies, and adaptive policy selection. Rather than claiming that one method is universally best, the paper evaluates how policies behave under different perturbation regimes and selects among them using validation samples.
+The distinctive aspect of this work is the combination of mobility-derived topology, stochastic perturbation, relocation-aware objective design, executable greedy and DQN policies, and adaptive policy selection. Rather than claiming that one method is universally best, we evaluate how policies behave under different perturbation regimes and select among them using validation samples.
 
 \begin{table}[t]
 \centering
-\caption{Comparison of related work themes and this project.}
+\caption{Comparison of related work themes and this work.}
 \label{tab:related_comparison}
 \begin{tabular}{p{0.24\textwidth}p{0.30\textwidth}p{0.32\textwidth}}
 \toprule

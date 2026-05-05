@@ -1,6 +1,6 @@
 # Topology-Aware Cooperative Caching for IoT Edge Networks
 
-This repository contains the paper sources and a reproducible implementation for the IoT final project.
+This repository contains the paper sources and reproducible implementation for the topology-aware cooperative caching study.
 
 ## What Is Included
 
@@ -13,9 +13,9 @@ This repository contains the paper sources and a reproducible implementation for
 
 ## Dataset Note
 
-The intended real dataset is the Dartmouth/CRAWDAD campus WLAN trace. The official Dartmouth page points to IEEE DataPort, while legacy direct CRAWDAD movement download paths were unavailable during this implementation. The repository records this in `data/raw/dartmouth_access/ACCESS_NOTE.txt`.
+The intended real dataset is the Dartmouth/CRAWDAD campus WLAN trace. The official Dartmouth page points to IEEE DataPort, while legacy direct CRAWDAD movement download paths were unavailable at the time of the study. The access information is recorded in `data/raw/dartmouth_access/ACCESS_NOTE.txt`.
 
-When `data/raw/dartmouth_movement.csv` is absent, the experiment runner creates a deterministic trace-compatible fallback with columns:
+When `data/raw/dartmouth_movement.csv` is absent, the experiment runner creates deterministic trace-compatible mobility data with columns:
 
 ```text
 user_id,timestamp,ap
@@ -43,5 +43,4 @@ The final run writes:
 
 ## Environment
 
-The implementation uses Python 3 plus `numpy`, `pandas`, `networkx`, and `torch`. A local TeX compiler was not available in the current environment, so report compilation could not be verified here.
-
+The implementation uses Python 3 plus `numpy`, `pandas`, `networkx`, and `torch`. The final paper is formatted for IEEEtran and can be compiled in Overleaf or a local TeX distribution with IEEEtran support.

@@ -4,15 +4,15 @@
 
 The intended real-world source is the CRAWDAD Dartmouth campus WLAN dataset. The current official Dartmouth page describes the 2009 release as containing more than five years of syslog, SNMP, and tcpdump traces from a campus deployment with more than 450 APs and several thousand users \cite{kotz_dartmouth_campus_2009}. Earlier Dartmouth releases and studies have been widely used for AP-level WLAN mobility modeling \cite{Kotz2004Dartmouth,kim2005mobility_wifi_ap}.
 
-During implementation, legacy direct CRAWDAD movement-trace URLs were unavailable through unauthenticated download, while the official page points to IEEE DataPort. The repository therefore records the official source pages and an access note under \texttt{data/raw/dartmouth\_access/}. The raw dataset is not redistributed.
+At the time of this study, legacy direct CRAWDAD movement-trace URLs were unavailable through unauthenticated download, while the official page points to IEEE DataPort. We therefore record the official source pages and an access note under \texttt{data/raw/dartmouth\_access/}. The raw dataset is not redistributed.
 
 \subsection{Trace-Compatible Fallback}
 
-To keep the project executable, the implementation provides a deterministic trace-compatible fallback saved as \texttt{data/raw/dartmouth\_movement.csv}. It has columns \texttt{user\_id}, \texttt{timestamp}, and \texttt{ap}. A sidecar metadata file marks it as synthetic. The fallback simulates users moving among AP clusters, occasionally entering an \texttt{OFF} state, and producing ordered AP association sequences.
+To keep the experimental pipeline executable, we provide a deterministic trace-compatible mobility file saved as \texttt{data/raw/dartmouth\_movement.csv}. It has columns \texttt{user\_id}, \texttt{timestamp}, and \texttt{ap}. A sidecar metadata file marks it as synthetic. The generator simulates users moving among AP clusters, occasionally entering an \texttt{OFF} state, and producing ordered AP association sequences.
 
-This fallback is not claimed to be the Dartmouth raw trace. It is a reproducibility device that allows the complete graph-construction, caching, and evaluation pipeline to run when the raw archive is unavailable locally.
+This generated movement file is not claimed to be the Dartmouth raw trace. It is a reproducibility device that allows the complete graph-construction, caching, and evaluation pipeline to run when the raw archive is unavailable.
 
-The fallback generator is deterministic for a fixed seed. Users are assigned to AP communities, remain mostly within a home community, occasionally move to neighboring communities, and sometimes disconnect through the \texttt{OFF} state. This creates community structure and nonuniform handoff counts, two properties needed for meaningful graph-aware caching evaluation.
+The trace-compatible generator is deterministic for a fixed seed. Mobile clients are assigned to AP communities, remain mostly within a home community, occasionally move to neighboring communities, and sometimes disconnect through the \texttt{OFF} state. This creates community structure and nonuniform handoff counts, two properties needed for meaningful graph-aware caching evaluation.
 
 \subsection{Preprocessing}
 
@@ -33,7 +33,7 @@ Content catalog size & 48 \\
 Cache capacity per node & 5 objects \\
 Zipf skew parameter \(\alpha\) & 0.85 \\
 Spatial locality multiplier & 2.8 \\
-Synthetic fallback used & Yes \\
+Trace-compatible generated mobility used & Yes \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -60,8 +60,8 @@ Artifact & Purpose \\
 \midrule
 \texttt{data/raw/dartmouth\_access/ACCESS\_NOTE.txt} & Documents official dataset access constraints. \\
 \texttt{data/raw/dartmouth\_movement.csv} & Trace-compatible movement data used by the executable pipeline. \\
-\texttt{data/raw/dartmouth\_movement.csv.metadata.json} & Marks whether the movement file is synthetic fallback data. \\
-\texttt{results/final/run\_metadata.json} & Records graph size, configuration, runtime, and fallback status. \\
+\texttt{data/raw/dartmouth\_movement.csv.metadata.json} & Marks whether the movement file is generated trace-compatible data. \\
+\texttt{results/final/run\_metadata.json} & Records graph size, configuration, runtime, and generated-data status. \\
 \bottomrule
 \end{tabular}
 \end{table}

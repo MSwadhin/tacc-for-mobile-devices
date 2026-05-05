@@ -14,22 +14,37 @@ The DQN refiner starts from the greedy placement and searches for local modifica
 \textbf{RQ4: Is one static placement policy sufficient under all perturbation regimes?}
 The results show that the answer is no. Moderate perturbation favors diversity-aware placement, while nominal and high-churn regimes favor DQN-refined greedy. This motivates Adaptive TACC's validation-based selector.
 
+\subsection{High-Level Consistency Questions}
+
+Before defining algorithms, we use three simple consistency questions to check whether the work is coherent.
+
+\textbf{What is the goal of the study?}
+The goal is to reduce content access cost in an IoT edge network by placing content across cooperative edge caches in a way that uses mobility-derived topology. The target is not merely local hit maximization; the target is lower total cost under storage limits, redundancy concerns, and topology changes.
+
+\textbf{How is the algorithm adapting?}
+The algorithm adapts at two levels. At the placement level, DQN refinement changes selected node-content assignments around a topology-aware greedy warm start. At the policy level, Adaptive TACC selects between diversified placement and DQN-refined greedy according to validation performance under the current perturbation regime.
+
+\textbf{What changes when the graph is perturbed?}
+When the graph is perturbed, some nodes and edges become unavailable. This changes which cached objects can be reached, how far they are in graph latency, how much redundancy exists among active neighbors, and whether a request becomes a cooperative hit or an origin miss. Therefore, the same cache matrix can have different objective values under different graph realizations.
+
+\textbf{Why not use only one caching rule?}
+The experiments show that policy quality depends on perturbation intensity. DQN-refined greedy is best in nominal and high-churn settings, while diversified popularity is stronger in moderate perturbation. Adaptive TACC exists because the correct caching behavior is regime-dependent.
+
 \begin{table}[t]
 \centering
-\caption{Major gaps in the original project draft and how the final paper closes them.}
+\caption{Major methodology gaps addressed in this study.}
 \label{tab:gap_closure}
 \begin{tabular}{p{0.29\textwidth}p{0.61\textwidth}}
 \toprule
 Gap & Closure \\
 \midrule
-No implementation & Added a complete Python pipeline under \texttt{src/tacc/} and runnable scripts under \texttt{scripts/}. \\
-Dataset access ambiguity & Added official Dartmouth/IEEE DataPort access notes and a clearly labeled deterministic fallback trace. \\
-Vague graph construction & Defined OFF filtering, AP selection, handoff counting, edge weighting, and connected-component selection. \\
-Thin demand model & Added Zipf popularity, spatial locality, fixed seeds, catalog size, and cache capacity. \\
-Conceptual DRL only & Implemented DQN with replay, target network, epsilon-greedy exploration, graph features, and accepted-action inference. \\
-Unsupported results & Generated CSV metrics, sample-level metrics, LaTeX tables, and a perturbation plot from executed experiments. \\
-One-policy overclaim & Added Adaptive TACC selector and rewrote results around measured policy-regime trade-offs. \\
+Executable reproducibility & We implement a complete Python pipeline under \texttt{src/tacc/} and runnable scripts under \texttt{scripts/}. \\
+Dataset access ambiguity & We record official Dartmouth/IEEE DataPort access notes and use a clearly labeled deterministic mobility generator. \\
+Vague graph construction & We define OFF filtering, AP selection, handoff counting, edge weighting, and connected-component selection. \\
+Thin demand model & We use Zipf popularity, spatial locality, fixed seeds, catalog size, and cache capacity. \\
+Conceptual DRL only & We implement DQN with replay, target network, epsilon-greedy exploration, graph features, and accepted-action inference. \\
+Unsupported results & We generate CSV metrics, sample-level metrics, LaTeX tables, and perturbation figures from executed experiments. \\
+One-policy overclaim & We introduce Adaptive TACC and report measured policy-regime trade-offs. \\
 \bottomrule
 \end{tabular}
 \end{table}
-
