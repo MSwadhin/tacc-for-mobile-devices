@@ -28,13 +28,15 @@ Real edge cooperation is uncertain. We model this uncertainty by sampling a pert
 \[
 \tilde{G}=(\tilde{V},\tilde{E},\tilde{W}) \sim \mathcal{P}_p(G),
 \]
-where \(p\) is the perturbation rate. In the experimental model, nodes are removed with probability \(p\), edges are removed with probability \(p/2\), and the largest connected component is retained for evaluation. Node removal represents temporary AP unavailability, maintenance, failure, or a time window in which an AP does not participate in cooperative caching. Edge removal represents a weakened cooperative relationship or loss of a usable path between APs.
+where \(\tilde{V}\subseteq V\) is the active node set after node perturbation, \(\tilde{E}\) is the active edge set after edge perturbation, \(\tilde{W}\) contains the corresponding active edge weights, and \(p\) is the perturbation rate. In the experimental model, nodes are removed with probability \(p\), edges are removed with probability \(p/2\), and the largest connected component is retained for evaluation. Node removal represents temporary AP unavailability, maintenance, failure, or a time window in which an AP does not participate in cooperative caching. Edge removal represents a weakened cooperative relationship or loss of a usable path between APs.
 
 Perturbation changes the value of a placement without changing the placement matrix itself. If a holder node is removed, its cached objects cannot serve active requests. If an edge is removed, shortest paths can become longer or disconnected. If a placement concentrates many useful objects at a few central nodes, it may perform well on the nominal graph but become fragile under node perturbation. If a placement spreads objects more broadly, it may trade nominal precision for perturbation robustness.
 
 The evaluated perturbation range is \(p\leq 0.25\). This range is chosen because the study is concerned with degraded-but-operational cooperation, not complete network fragmentation. At \(p=0.20\) and \(p=0.25\), the graph is already under substantial stress, but the largest connected component remains large enough for cooperative caching to be meaningful in the sampled runs. For still larger \(p\), the largest connected component can shrink enough that cooperative caching approaches a local-only or outage regime. In that case, the correct control action is not simply to keep applying the same placement rule; the controller should re-estimate the active graph, lower the cost of relying on removed nodes, and possibly fall back to low-overhead local or diversified caching until a new stable topology window is observed.
 
 \subsection{Access Cost}
+
+The optimization and reported metrics use normalized cost components so that values remain comparable across perturbed graphs with different active node sets. Unless otherwise stated, all costs are evaluated over the active graph \(\tilde{G}\) and normalized by the active node set or by the corresponding maximum feasible weighted overlap.
 
 Let \(L_{\text{local}}\) be the latency of a local cache hit and \(L_{\text{origin}}\) be the latency of retrieving content from the origin. Let \(L(i,j;\tilde{G})\) be the cooperative retrieval latency from node \(j\) to node \(i\), computed as a non-decreasing function of shortest-path distance in the active perturbed graph. For a request for content \(c\) at node \(i\), the best non-local retrieval latency is
 \[
@@ -49,6 +51,7 @@ The expected access cost is
 \[
 C_{\text{access}}(x,\tilde{G})
 =
+\frac{1}{|\tilde{V}|}
 \sum_{i \in \tilde{V}}\sum_{c \in \mathcal{C}}
 P_{i,c}
 \left[
@@ -64,24 +67,37 @@ Replication cost captures storage and update overhead:
 \[
 C_{\text{rep}}(x,\tilde{G})
 =
+\frac{1}{|\tilde{V}|}
 \sum_{i \in \tilde{V}}\sum_{c \in \mathcal{C}}
-\gamma f_c x_{i,c},
+f_c x_{i,c},
 \]
-where \(f_c\) is a content-size or content-maintenance factor and \(\gamma\) is the unit replication weight. In the reported experiment, objects are treated uniformly, but the formulation allows heterogeneous objects.
+where \(f_c\) is a content-size or content-maintenance factor. In the reported experiment, objects are treated uniformly, but the formulation allows heterogeneous objects. The unit replication weight is applied later through \(\lambda\) in the total objective.
 
 Topology-aware redundancy penalizes storing the same object at strongly related active nodes:
 \[
 C_{\text{red}}(x,\tilde{G})
 =
-\sum_{c \in \mathcal{C}}\sum_{\substack{i,j \in \tilde{V}\\i<j}}
+\frac{1}{|\tilde{V}|}
+\sum_{c \in \mathcal{C}}\sum_{\substack{(i,j)\in\tilde{E}\\i<j}}
 \tilde{w}_{ij}x_{i,c}x_{j,c}.
 \]
 Duplicate content is not prohibited. Highly popular objects may deserve multiple replicas. The redundancy term instead makes duplication pay a cost proportional to mobility-derived relatedness. Duplicating an object at APs that exchange many users is less useful than duplicating it at weakly related APs, because strong neighbors can often serve one another cooperatively.
 
+For reporting, we also compute a normalized redundancy ratio
+\[
+R_{\text{red}}(x,\tilde{G})
+=
+\frac{1}{Z_{\text{red}}(\tilde{G})}
+\sum_{c \in \mathcal{C}}\sum_{\substack{(i,j)\in\tilde{E}\\i<j}}
+\tilde{w}_{ij}x_{i,c}x_{j,c},
+\]
+where \(Z_{\text{red}}(\tilde{G})\) is the maximum weighted duplicate overlap used for normalization on the active graph. The objective uses \(C_{\text{red}}\), while \(R_{\text{red}}\) is reported as an additional scale-free diagnostic.
+
 Relocation cost measures how much a placement differs from the previously deployed placement \(x^{t-1}\):
 \[
-C_{\text{rel}}(x^t,x^{t-1})
+C_{\text{rel}}(x^t,x^{t-1},\tilde{G})
 =
+\frac{1}{|\tilde{V}|}
 \sum_{i \in \tilde{V}}\sum_{c \in \mathcal{C}}
 \delta_c |x^t_{i,c}-x^{t-1}_{i,c}|.
 \]
@@ -99,10 +115,10 @@ The stochastic topology-aware cooperative caching problem is
 C_{\text{access}}(x^t,\tilde{G})
 + \lambda C_{\text{rep}}(x^t,\tilde{G})
 + \beta C_{\text{red}}(x^t,\tilde{G})
-+ \mu C_{\text{rel}}(x^t,x^{t-1})
++ \mu C_{\text{rel}}(x^t,x^{t-1},\tilde{G})
 \right],
 \]
-subject to binary placement and cache-capacity constraints. The parameters \(\lambda\), \(\beta\), and \(\mu\) control the relative importance of replication, redundancy, and relocation. These weights are deployment-dependent: a network with cheap storage may tolerate more replicas, while a network with expensive updates may require stronger relocation control.
+subject to binary placement and cache-capacity constraints. The parameters \(\lambda\), \(\beta\), and \(\mu\) control the relative importance of replication, redundancy, and relocation. These weights are deployment-dependent: a network with cheap storage may tolerate more replicas, while a network with expensive updates may require stronger relocation control. For the initial topology-aware greedy placement, the relocation term is omitted because no previous cache state has yet been deployed. During online refinement, relocation is computed relative to the previous deployed placement.
 
 \subsection{Problem Properties}
 

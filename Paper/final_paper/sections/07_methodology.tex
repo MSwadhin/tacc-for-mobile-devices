@@ -103,6 +103,47 @@ The DQN uses two hidden layers with ReLU activations, replay-buffer sampling, a 
 
 The learning component is therefore deliberately bounded. It is not trained to construct a full placement from scratch, which would make the action space too large and the result difficult to interpret. Instead, the DQN learns where the currently deployed solution has local weaknesses under sampled perturbations. A useful action may replace a redundant object, introduce a replica at a more resilient node, or reduce expected cooperative path length. If the proposed move fails the objective check, the placement remains unchanged. This design makes learning part of the adaptive method while preserving relocation awareness.
 
+\begin{algorithm}[H]
+\caption{Transition-Aware Online DQN Refinement}
+\label{alg:online_dqn_refinement}
+\begin{algorithmic}[1]
+\Require Active graph \(\tilde{G}_t\), demand matrix \(P_t\), previous deployed placement \(x^{t-1}\), cache capacities \(K_i\), Q-network \(Q_\theta\), target network \(Q_{\theta^-}\), replay buffer \(\mathcal{B}\)
+\Ensure Refined placement \(x^t\)
+\State Initialize current placement \(x \leftarrow x^{t-1}\)
+\State Construct state \(s\) from \(x\), \(P_t\), and graph features of \(\tilde{G}_t\)
+\For{each training episode}
+    \For{each refinement step}
+        \State Select action \(a=(i,c)\) using an epsilon-greedy policy from \(Q_\theta(s,a)\)
+        \State Apply the node-content toggle to obtain candidate placement \(x'\)
+        \If{capacity at node \(i\) is violated}
+            \State Evict the lowest-demand cached object at node \(i\)
+        \EndIf
+        \State Compute reward \(r = J(x,x^{t-1},\tilde{G}_t) - J(x',x^{t-1},\tilde{G}_t)\)
+        \State Construct next state \(s'\) from \(x'\), \(P_t\), and graph features
+        \State Store transition \((s,a,r,s')\) in replay buffer \(\mathcal{B}\)
+        \State Sample a minibatch from \(\mathcal{B}\) and update \(Q_\theta\)
+        \State Periodically update target network \(Q_{\theta^-}\)
+        \State Set \(s \leftarrow s'\) and \(x \leftarrow x'\)
+    \EndFor
+\EndFor
+\State Reset \(x \leftarrow x^{t-1}\) for accepted-action inference
+\State Reconstruct state \(s\) from \(x\), \(P_t\), and graph features of \(\tilde{G}_t\)
+\For{each inference refinement step}
+    \State Select best candidate action \(a^*=\arg\max_a Q_\theta(s,a)\)
+    \State Apply \(a^*\) to produce candidate placement \(x'\)
+    \If{\(J(x',x^{t-1},\tilde{G}_t) < J(x,x^{t-1},\tilde{G}_t)\)}
+        \State Accept the action and set \(x \leftarrow x'\)
+    \Else
+        \State Reject the action and keep \(x\) unchanged
+    \EndIf
+    \State Update state \(s\) from the current placement \(x\)
+\EndFor
+\State \Return \(x^t \leftarrow x\)
+\end{algorithmic}
+\end{algorithm}
+
+Algorithm~\ref{alg:online_dqn_refinement} formalizes the online role of the DQN refiner. The DQN does not construct a cache placement from an empty state. Instead, it begins with the previously deployed placement and searches for local node-content changes that reduce the online objective after relocation is charged. During inference, a proposed change is accepted only when it improves the measured objective; otherwise, the deployed cache is kept unchanged.
+
 \subsection{Computational Complexity}
 
 The greedy stage is the most expensive deterministic component. If there are \(N\) nodes, \(M\) content objects, cache capacity \(K\), and \(S\) perturbation samples per marginal evaluation, naive greedy search can require \(O(NKMNS)\) objective evaluations. Candidate filtering reduces the effective value of \(M\) by considering only high-demand objects at each node. The DQN action space has size \(NM\), and training cost scales with the number of episodes, steps per episode, and minibatch size. Since online DQN starts from the deployed placement, it does not need to learn an entire placement from an empty cache state.
