@@ -96,7 +96,7 @@ def objective_chart(summary: pd.DataFrame) -> None:
         lines.append(f"\\node[right] at (8.25,{ly:.2f}) {{{DISPLAY[policy]}}};")
     lines += [
         "\\end{tikzpicture}",
-        "\\caption{Objective trends for the strongest placement policies across perturbation rates. Adaptive TACC follows the best regime-specific candidate rather than forcing one static policy.}",
+        "\\caption{Objective trends for the strongest placement policies across perturbation rates. Adaptive TACC follows a cost-aware regime-specific policy rather than forcing one static placement rule or always invoking DQN refinement.}",
         "\\label{fig:generated_objective_trends}",
         "\\end{figure}",
     ]
@@ -150,8 +150,12 @@ def selector_pie(summary: pd.DataFrame) -> None:
         "\\centering",
         "\\begin{tikzpicture}[x=1cm,y=1cm]",
     ]
-    label_map = {"hybrid_dqn": "Greedy+DQN", "diversified_popularity": "Diversified"}
-    colors = {"hybrid_dqn": "purple", "diversified_popularity": "orange"}
+    label_map = {
+        "hybrid_dqn": "Greedy+DQN",
+        "diversified_popularity": "Diversified",
+        "topology_greedy": "Topo-Greedy",
+    }
+    colors = {"hybrid_dqn": "purple", "diversified_popularity": "orange", "topology_greedy": "teal"}
     for policy, count in counts.items():
         frac = count / total
         end = start + frac * 360.0
@@ -167,10 +171,16 @@ def selector_pie(summary: pd.DataFrame) -> None:
         start = end
     lines += [
         "\\draw (0,0) circle (1.45);",
-        "\\fill[purple!65] (2.25,0.55) rectangle (2.55,0.85); \\node[right] at (2.60,0.70) {Greedy+DQN};",
-        "\\fill[orange!65] (2.25,0.10) rectangle (2.55,0.40); \\node[right] at (2.60,0.25) {Diversified};",
+    ]
+    for idx, policy in enumerate(sorted(counts, key=lambda name: label_map[name])):
+        y = 0.75 - idx * 0.45
+        lines.append(
+            f"\\fill[{colors[policy]}!65] (2.25,{y-0.15:.2f}) rectangle (2.55,{y+0.15:.2f}); "
+            f"\\node[right] at (2.60,{y:.2f}) {{{label_map[policy]}}};"
+        )
+    lines += [
         "\\end{tikzpicture}",
-        "\\caption{Adaptive TACC policy-selection frequency across the four perturbation regimes. The selector uses DQN-refined greedy in stable/high-churn regimes and diversified placement in moderate perturbation.}",
+        "\\caption{Adaptive TACC policy-selection frequency across the four perturbation regimes. The cost-aware selector uses topology-aware greedy when DQN's marginal gain is too small to justify added computation, diversified placement in moderate perturbation, and DQN refinement when high-churn instability makes refinement worthwhile.}",
         "\\label{fig:generated_selector_pie}",
         "\\end{figure}",
     ]

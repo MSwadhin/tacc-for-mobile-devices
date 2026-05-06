@@ -4,10 +4,63 @@
   "trace_rows": 25600,
   "used_synthetic_fallback": true,
   "top_global_content_probability": 0.17143528163433075,
-  "runtime_seconds": 145.4993588924408,
+  "runtime_seconds": 147.36237001419067,
   "training_stats": {
-    "training_loss": 0.012335323728621006,
-    "nominal_objective": 2.413921349975745
+    "dqn_trained": true,
+    "dqn_candidate_rate_count": 2.0,
+    "training_loss": 0.007701237685978413,
+    "nominal_objective": 2.6317327666848374,
+    "dqn_training_rate": 0.075
+  },
+  "dqn_gate": {
+    "0.00": {
+      "best_base_policy": "topology_greedy",
+      "base_score_gap": 0.09694675085514559,
+      "best_base_objective_std": 0.0,
+      "dqn_considered": true
+    },
+    "0.05": {
+      "best_base_policy": "diversified_popularity",
+      "base_score_gap": 0.6160707138354047,
+      "best_base_objective_std": 0.14924520919966855,
+      "dqn_considered": false
+    },
+    "0.10": {
+      "best_base_policy": "diversified_popularity",
+      "base_score_gap": 0.6713723979835837,
+      "best_base_objective_std": 0.02280430866732347,
+      "dqn_considered": false
+    },
+    "0.15": {
+      "best_base_policy": "diversified_popularity",
+      "base_score_gap": 0.8708489863848774,
+      "best_base_objective_std": 1.7371943994338641,
+      "dqn_considered": true
+    }
+  },
+  "selector_decisions": {
+    "0.00": {
+      "score_diversified_popularity": 2.74040820225969,
+      "score_topology_greedy": 2.6434614514045442,
+      "score_hybrid_dqn": 2.661732766684837,
+      "selected_policy": "topology_greedy"
+    },
+    "0.05": {
+      "score_diversified_popularity": 3.0801776935025713,
+      "score_topology_greedy": 3.696248407337976,
+      "selected_policy": "diversified_popularity"
+    },
+    "0.10": {
+      "score_diversified_popularity": 3.755241595064156,
+      "score_topology_greedy": 4.42661399304774,
+      "selected_policy": "diversified_popularity"
+    },
+    "0.15": {
+      "score_diversified_popularity": 5.976464124593258,
+      "score_topology_greedy": 6.847313110978136,
+      "score_hybrid_dqn": 5.901027896119986,
+      "selected_policy": "hybrid_dqn"
+    }
   },
   "config": {
     "trace_path": "data/raw/dartmouth_movement.csv",
@@ -27,6 +80,12 @@
       0.15
     ],
     "dqn_episodes": 85,
-    "dqn_steps": 16
+    "dqn_steps": 16,
+    "selector_variance_weight": 0.25,
+    "selector_replication_weight": 20.0,
+    "selector_compute_weight": 0.03,
+    "dqn_trigger_margin": 0.35,
+    "dqn_trigger_std": 1.25,
+    "dqn_instability_credit": 2.0
   }
 }

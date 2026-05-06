@@ -2,7 +2,7 @@
 
 We developed a complete topology-aware cooperative caching framework for IoT edge networks. The study produced a formal problem statement, research questions, dataset strategy, executable pipeline, implemented baselines, DQN refinement, adaptive policy selection, and measured results.
 
-The results show that topology-aware and adaptive strategies outperform simple local and global caching baselines. DQN refinement improves a greedy warm start under nominal and high-churn conditions, while diversity-aware placement is strongest under moderate perturbation. Adaptive TACC combines these behaviors and achieves the best or tied-best objective across all tested perturbation rates.
+The results show that topology-aware and adaptive strategies outperform simple local and global caching baselines. DQN refinement improves a greedy warm start most clearly under high-churn conditions, while diversity-aware placement is strongest under moderate perturbation. Adaptive TACC combines these behaviors through cost-aware selection, avoiding DQN when its marginal gain is too small and using it when high-churn instability justifies the extra optimization effort.
 
 The central lesson is that cooperative edge caching should not be designed as a single static placement rule. Mobility-derived topology, perturbation level, cache diversity, and relocation stability all matter. A robust system should therefore combine structural optimization, bounded learning-based refinement, and adaptive selection across operating regimes.
 
