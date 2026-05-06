@@ -2,10 +2,10 @@
 \centering
 \begin{tikzpicture}[x=1cm,y=1cm]
 \fill[green!65] (0,0) -- (0.00:1.45) arc (0.00:360.00:1.45) -- cycle;
-\node at (-1.15,0.00) {4/4};
+\node at (-1.15,0.00) {6/6};
 \draw (0,0) circle (1.45);
 \fill[green!65] (2.25,0.60) rectangle (2.55,0.90); \node[right] at (2.60,0.75) {Online DQN};
 \end{tikzpicture}
-\caption{Adaptive TACC policy-selection frequency across the four perturbation regimes under sequential online relocation. Online DQN is selected in this run because transition-aware refinement improves the currently deployed cache enough to justify the measured cache rewrites.}
+\caption{Validation-gate policy-selection frequency across the tested perturbation windows under sequential online relocation. Online DQN is selected in this run, so the gate is interpreted as a safeguard rather than as an independent source of improvement.}
 \label{fig:generated_selector_pie}
 \end{figure}

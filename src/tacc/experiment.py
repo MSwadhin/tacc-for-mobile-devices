@@ -35,7 +35,7 @@ class ExperimentConfig:
     locality_strength: float = 2.8
     greedy_samples: int = 2
     eval_samples: int = 12
-    perturbation_rates: tuple[float, ...] = (0.00, 0.05, 0.10, 0.15)
+    perturbation_rates: tuple[float, ...] = (0.00, 0.05, 0.10, 0.15, 0.20, 0.25)
     dqn_episodes: int = 85
     dqn_steps: int = 16
     selector_variance_weight: float = 0.25
@@ -47,6 +47,7 @@ class ExperimentConfig:
 
 
 POLICY_COMPLEXITY = {
+    "keep_current": 0.00,
     "diversified_popularity": 0.05,
     "topology_greedy": 0.35,
     "hybrid_dqn": 1.00,
@@ -197,6 +198,7 @@ def run_experiment(config: ExperimentConfig) -> dict[str, Path]:
     previous_policy_placements: dict[str, np.ndarray] = {}
     for rate in config.perturbation_rates:
         candidate_placements = {
+            "keep_current": online_reference,
             "diversified_popularity": placements["diversified_popularity"],
             "topology_greedy": placements["topology_greedy"],
         }
@@ -242,8 +244,35 @@ def run_experiment(config: ExperimentConfig) -> dict[str, Path]:
             **{f"score_{policy}": score for policy, score in validation_scores.items()},
             "previous_policy": previous_adaptive_policy,
             "selected_policy": selected_policy,
+            "selected_is_noop": selected_policy == "keep_current",
             "online_dqn_relocation_entries": float(np.logical_xor(online_dqn, online_reference).sum()),
         }
+
+        keep_current_metric_rows = []
+        for sample in range(config.eval_samples):
+            rng = np.random.default_rng(config.seed + int(rate * 1000) + sample)
+            g = perturb_graph(graph, rng, remove_node_rate=rate, remove_edge_rate=rate / 2.0)
+            metrics = evaluate_placement(g, nodes, online_reference, demand, online_reference, cost_cfg)
+            keep_current_metric_rows.append(metrics)
+            detail_rows.append(
+                {
+                    "policy": "keep_current",
+                    "previous_policy": previous_adaptive_policy,
+                    "perturbation_rate": rate,
+                    "sample": sample,
+                    **metrics,
+                }
+            )
+        keep_current_averaged = average_metrics(keep_current_metric_rows)
+        rows.append(
+            {
+                "policy": "keep_current",
+                "previous_policy": previous_adaptive_policy,
+                "perturbation_rate": rate,
+                **keep_current_averaged,
+                "objective_std": float(pd.DataFrame(keep_current_metric_rows)["objective"].std(ddof=1)),
+            }
+        )
 
         for policy, placement in placements.items():
             initial = previous_policy_placements.get(policy)
@@ -349,7 +378,7 @@ def run_experiment(config: ExperimentConfig) -> dict[str, Path]:
         "training_stats": training_stats,
         "dqn_gate": dqn_gate,
         "selector_decisions": selector_decisions,
-        "online_relocation_reference": "Adaptive TACC evaluates each selected placement against the previously deployed Adaptive TACC placement; the online horizon is bootstrapped from topology-aware greedy.",
+        "online_relocation_reference": "The validation-gated deployment evaluates each selected placement against the previously deployed online placement; the online horizon is bootstrapped from topology-aware greedy.",
         "config": asdict(config),
     }
     stats_path = output_dir / "run_metadata.json"

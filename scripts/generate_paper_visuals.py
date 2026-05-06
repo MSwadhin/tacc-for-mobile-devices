@@ -20,17 +20,19 @@ TRACE = ROOT / "data" / "raw" / "dartmouth_movement.csv"
 
 DISPLAY = {
     "random": "Random",
+    "keep_current": "Keep Current",
     "local_popularity": "Local Popularity",
     "global_popularity": "Global Popularity",
     "diversified_popularity": "Diversified",
     "topology_greedy": "Topo-Greedy",
     "hybrid_dqn": "Greedy+DQN",
     "online_dqn": "Online DQN",
-    "adaptive_tacc": "Adaptive TACC",
+    "adaptive_tacc": "Validation Gate",
 }
 
 COLORS = {
     "random": "gray",
+    "keep_current": "black",
     "local_popularity": "blue",
     "global_popularity": "brown",
     "diversified_popularity": "orange",
@@ -61,14 +63,14 @@ def objective_chart(summary: pd.DataFrame) -> None:
     ymin = float(values.min()) * 0.92
     ymax = float(values.max()) * 1.06
     span = max(ymax - ymin, 1e-6)
-    x0, xstep = 1.0, 2.0
+    x0, xstep = 1.0, 1.25
     y0, height = 0.70, 2.55
 
     lines = [
         "\\begin{figure}[t]",
         "\\centering",
         "\\begin{tikzpicture}[x=1cm,y=1cm]",
-        "\\draw[->] (0.7,0.55) -- (7.65,0.55) node[right] {Perturbation rate};",
+        "\\draw[->] (0.7,0.55) -- (7.85,0.55) node[right] {Perturbation rate};",
         "\\draw[->] (0.7,0.55) -- (0.7,3.45) node[above] {Objective};",
     ]
     for i, rate in enumerate(rates):
@@ -77,7 +79,7 @@ def objective_chart(summary: pd.DataFrame) -> None:
         lines.append(f"\\draw[gray!25] ({x:.2f},0.58) -- ({x:.2f},3.25);")
     for tick in [ymin, (ymin + ymax) / 2.0, ymax]:
         y = y0 + height * (tick - ymin) / span
-        lines.append(f"\\draw[gray!25] (0.72,{y:.2f}) -- (7.25,{y:.2f});")
+        lines.append(f"\\draw[gray!25] (0.72,{y:.2f}) -- (7.15,{y:.2f});")
         lines.append(f"\\node[left] at (0.68,{y:.2f}) {{{tick:.1f}}};")
 
     for pidx, policy in enumerate(policies):
@@ -94,11 +96,11 @@ def objective_chart(summary: pd.DataFrame) -> None:
         for x, y in coords:
             lines.append(f"\\fill[{color}] ({x:.2f},{y:.2f}) circle (1.8pt);")
         ly = 3.20 - pidx * 0.27
-        lines.append(f"\\draw[{color}, {style}] (7.75,{ly:.2f}) -- (8.20,{ly:.2f});")
-        lines.append(f"\\node[right] at (8.25,{ly:.2f}) {{{DISPLAY[policy]}}};")
+        lines.append(f"\\draw[{color}, {style}] (7.95,{ly:.2f}) -- (8.40,{ly:.2f});")
+        lines.append(f"\\node[right] at (8.45,{ly:.2f}) {{{DISPLAY[policy]}}};")
     lines += [
         "\\end{tikzpicture}",
-        "\\caption{Objective trends for the strongest placement policies across perturbation rates. Online DQN and Adaptive TACC coincide in this run because transition-aware refinement improves the deployed cache enough to justify relocation and computation cost in every tested window.}",
+        "\\caption{Objective trends for the strongest placement policies across perturbation rates. Online DQN and the validation-gated deployment coincide in this run because the gate selects transition-aware refinement in every tested window.}",
         "\\label{fig:generated_objective_trends}",
         "\\end{figure}",
     ]
@@ -111,14 +113,14 @@ def hit_breakdown(summary: pd.DataFrame) -> None:
         "\\begin{figure}[t]",
         "\\centering",
         "\\begin{tikzpicture}[x=1cm,y=1cm]",
-        "\\draw[->] (0.55,0.45) -- (8.30,0.45) node[right] {Perturbation rate};",
+        "\\draw[->] (0.55,0.45) -- (8.65,0.45) node[right] {Perturbation rate};",
         "\\draw[->] (0.55,0.45) -- (0.55,3.30) node[above] {Request share};",
         "\\node[left] at (0.50,0.45) {0};",
         "\\node[left] at (0.50,3.15) {1};",
     ]
     bar_w = 0.65
     for idx, row in rows.iterrows():
-        x = 1.15 + list(rows.index).index(idx) * 1.7
+        x = 1.05 + list(rows.index).index(idx) * 1.05
         y = 0.45
         local = row["local_hit_ratio"] * 2.7
         coop = row["cooperative_hit_ratio"] * 2.7
@@ -135,7 +137,7 @@ def hit_breakdown(summary: pd.DataFrame) -> None:
         "\\fill[blue!45] (7.25,2.35) rectangle (7.55,2.60); \\node[right] at (7.60,2.48) {Cooperative hit};",
         "\\fill[red!45] (7.25,1.95) rectangle (7.55,2.20); \\node[right] at (7.60,2.08) {Origin miss};",
         "\\end{tikzpicture}",
-        "\\caption{Hit-ratio decomposition for Adaptive TACC. Most served demand is cooperative rather than purely local, showing why graph-aware cache diversity matters.}",
+        "\\caption{Hit-ratio decomposition for the validation-gated deployment. Most served demand is cooperative rather than purely local, showing why graph-aware cache diversity matters.}",
         "\\label{fig:generated_hit_breakdown}",
         "\\end{figure}",
     ]
@@ -153,12 +155,14 @@ def selector_pie(summary: pd.DataFrame) -> None:
         "\\begin{tikzpicture}[x=1cm,y=1cm]",
     ]
     label_map = {
+        "keep_current": "Keep Current",
         "hybrid_dqn": "Greedy+DQN",
         "online_dqn": "Online DQN",
         "diversified_popularity": "Diversified",
         "topology_greedy": "Topo-Greedy",
     }
     colors = {
+        "keep_current": "black",
         "hybrid_dqn": "purple",
         "online_dqn": "green",
         "diversified_popularity": "orange",
@@ -188,7 +192,7 @@ def selector_pie(summary: pd.DataFrame) -> None:
         )
     lines += [
         "\\end{tikzpicture}",
-        "\\caption{Adaptive TACC policy-selection frequency across the four perturbation regimes under sequential online relocation. Online DQN is selected in this run because transition-aware refinement improves the currently deployed cache enough to justify the measured cache rewrites.}",
+        "\\caption{Validation-gate policy-selection frequency across the tested perturbation windows under sequential online relocation. Online DQN is selected in this run, so the gate is interpreted as a safeguard rather than as an independent source of improvement.}",
         "\\label{fig:generated_selector_pie}",
         "\\end{figure}",
     ]
@@ -241,15 +245,19 @@ def cost_components(summary: pd.DataFrame) -> None:
 
 def metrics_table(summary: pd.DataFrame) -> None:
     policies = ["diversified_popularity", "topology_greedy", "hybrid_dqn", "online_dqn", "adaptive_tacc"]
-    rates = [0.00, 0.05, 0.10, 0.15]
+    rates = sorted(summary["perturbation_rate"].unique())
+    columns = " & ".join(f"$p={rate:.2f}$" for rate in rates)
+    alignment = "ll" + ("r" * len(rates))
     lines = [
         "\\begin{table}[t]",
         "\\centering",
         "\\caption{Objective and hit-ratio summary for the strongest policies.}",
         "\\label{tab:generated_compact_metrics}",
-        "\\begin{tabular}{llrrrr}",
+        "\\scriptsize",
+        "\\setlength{\\tabcolsep}{2pt}",
+        f"\\begin{{tabular}}{{{alignment}}}",
         "\\toprule",
-        "Policy & Metric & $p=0.00$ & $p=0.05$ & $p=0.10$ & $p=0.15$ \\\\",
+        f"Policy & Metric & {columns} \\\\",
         "\\midrule",
     ]
     for policy in policies:

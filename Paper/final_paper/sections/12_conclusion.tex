@@ -1,11 +1,9 @@
 \section{Conclusion}
 
-We developed a complete topology-aware cooperative caching framework for IoT edge networks. The study produced a formal online problem statement, research questions, dataset strategy, executable pipeline, implemented baselines, transition-aware DQN refinement, adaptive policy selection, and measured results.
+We developed a complete topology-aware cooperative caching framework for IoT edge networks. The study produced a formal online problem statement, research questions, dataset strategy, executable pipeline, implemented baselines, transition-aware DQN refinement, validation-gated deployment, and measured results.
 
-The results show that topology-aware and adaptive strategies outperform simple local and global caching baselines. Fixed Greedy+DQN improves over topology-aware greedy, but the stronger result is that Online DQN refinement improves the currently deployed cache in every tested perturbation window. Adaptive TACC selects Online DQN because its measured access and robustness gains justify the relocation cost of its cache updates.
+The results show that topology-aware online strategies outperform simple local and global caching baselines. Fixed Greedy+DQN is useful as an ablation, but the stronger result is that Online DQN refinement improves the currently deployed cache in every tested perturbation window through \(p=0.25\). The validation gate selects Online DQN throughout the final sweep, so it should be interpreted as a safeguard and consistency check rather than as a separate source of improvement.
 
-The central lesson is that cooperative edge caching should not be designed as a single static placement rule. Mobility-derived topology, perturbation level, cache diversity, and relocation stability all matter. A robust system should therefore combine structural optimization, bounded transition-aware learning, and adaptive selection across operating regimes.
-
-Future work should evaluate the same pipeline on the raw Dartmouth/IEEE DataPort archive, add temporal train-test splits, sweep content skew and cache capacity, compare against online LRU/LFU traces, and replace explicit graph features with a graph neural policy for larger deployments.
+The central lesson is that cooperative edge caching should not be designed as a single static placement rule. Mobility-derived topology, perturbation level, cache diversity, and relocation stability all matter. A robust system should therefore combine structural optimization, bounded transition-aware learning, and a conservative deployment guard that can keep the current cache when rewriting is not justified.
 
 The broader conclusion is that topology-aware cooperative caching should be evaluated as a sequential control problem. Mobility-derived structure, demand heterogeneity, graph perturbation, cache diversity, and relocation cost interact in ways that cannot be captured by local popularity or a single static placement rule.

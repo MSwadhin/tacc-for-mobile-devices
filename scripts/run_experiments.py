@@ -21,6 +21,11 @@ def main() -> None:
     parser.add_argument("--cache-capacity", type=int, default=5)
     parser.add_argument("--dqn-episodes", type=int, default=85)
     parser.add_argument("--dqn-steps", type=int, default=16)
+    parser.add_argument(
+        "--perturbation-rates",
+        default="0.00,0.05,0.10,0.15,0.20,0.25",
+        help="Comma-separated perturbation rates.",
+    )
     args = parser.parse_args()
 
     config = ExperimentConfig(
@@ -32,6 +37,7 @@ def main() -> None:
         cache_capacity=args.cache_capacity,
         dqn_episodes=args.dqn_episodes,
         dqn_steps=args.dqn_steps,
+        perturbation_rates=tuple(float(value) for value in args.perturbation_rates.split(",") if value),
     )
     outputs = run_experiment(config)
     print(f"Wrote metrics to {outputs['summary']}")

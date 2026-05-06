@@ -7,13 +7,14 @@ import pandas as pd
 
 DISPLAY_NAMES = {
     "random": "Random",
+    "keep_current": "Keep Current",
     "local_popularity": "Local Popularity",
     "global_popularity": "Global Popularity",
     "diversified_popularity": "Diversified Popularity",
     "topology_greedy": "Topology-Aware Greedy",
     "hybrid_dqn": "Greedy + DQN Refinement",
     "online_dqn": "Online DQN Refinement",
-    "adaptive_tacc": "Adaptive TACC Selector",
+    "adaptive_tacc": "Validation Gate",
 }
 
 
@@ -45,28 +46,25 @@ def write_latex_assets(summary: pd.DataFrame, output_dir: Path) -> None:
     table_lines.extend(["\\bottomrule", "\\end{tabular}", "\\end{table}", ""])
     (output_dir / "result_table.tex").write_text("\n".join(table_lines), encoding="utf-8")
 
-    compact_policies = [
-        "diversified_popularity",
-        "topology_greedy",
-        "hybrid_dqn",
-        "online_dqn",
-        "adaptive_tacc",
-    ]
+    compact_policies = ["diversified_popularity", "topology_greedy", "hybrid_dqn", "online_dqn", "adaptive_tacc"]
     compact = summary[summary["policy"].isin(compact_policies)].copy()
+    rates = sorted(compact["perturbation_rate"].unique())
+    columns = " & ".join(f"$p={rate:.2f}$" for rate in rates)
+    alignment = "l" + ("r" * len(rates))
     compact_lines = [
         "\\begin{table}[t]",
         "\\centering",
         "\\caption{Objective values across topology perturbation rates for the strongest policies. Lower is better.}",
         "\\label{tab:perturbation_results}",
-        "\\begin{tabular}{lrrrr}",
+        f"\\begin{{tabular}}{{{alignment}}}",
         "\\toprule",
-        "Policy & $p=0.00$ & $p=0.05$ & $p=0.10$ & $p=0.15$ \\\\",
+        f"Policy & {columns} \\\\",
         "\\midrule",
     ]
     for policy in compact_policies:
         row = compact[compact["policy"] == policy].set_index("perturbation_rate")
         values = []
-        for rate in [0.00, 0.05, 0.10, 0.15]:
+        for rate in rates:
             values.append(f"{row.loc[rate, 'objective']:.3f}")
         compact_lines.append(f"{DISPLAY_NAMES[policy]} & {' & '.join(values)} \\\\")
     compact_lines.extend(["\\bottomrule", "\\end{tabular}", "\\end{table}", ""])
@@ -94,13 +92,13 @@ def write_latex_assets(summary: pd.DataFrame, output_dir: Path) -> None:
     }
     y_positions = {policy: 0.8 + idx * 0.45 for idx, policy in enumerate(policies)}
     rates = sorted(filtered["perturbation_rate"].unique())
-    x_positions = {rate: 1.0 + idx * 2.0 for idx, rate in enumerate(rates)}
+    x_positions = {rate: 1.0 + idx * 1.25 for idx, rate in enumerate(rates)}
 
     lines = [
         "\\begin{figure}[t]",
         "\\centering",
         "\\begin{tikzpicture}[x=1cm,y=1cm]",
-        "\\draw[->] (0.7,0.55) -- (7.6,0.55) node[right] {Perturbation rate};",
+        "\\draw[->] (0.7,0.55) -- (7.85,0.55) node[right] {Perturbation rate};",
         "\\draw[->] (0.7,0.55) -- (0.7,3.1) node[above] {Objective};",
     ]
     for rate, x in x_positions.items():
@@ -117,12 +115,12 @@ def write_latex_assets(summary: pd.DataFrame, output_dir: Path) -> None:
         for coord in coords:
             lines.append(f"\\fill[{color}] {coord} circle (1.6pt);")
         legend_y = y_positions[policy]
-        lines.append(f"\\draw[{color}, thick] (7.9,{legend_y:.2f}) -- (8.35,{legend_y:.2f});")
-        lines.append(f"\\node[right] at (8.4,{legend_y:.2f}) {{{DISPLAY_NAMES[policy]}}};")
+        lines.append(f"\\draw[{color}, thick] (7.95,{legend_y:.2f}) -- (8.40,{legend_y:.2f});")
+        lines.append(f"\\node[right] at (8.45,{legend_y:.2f}) {{{DISPLAY_NAMES[policy]}}};")
     lines.extend(
         [
             "\\end{tikzpicture}",
-            "\\caption{Objective value under topology perturbation. Adaptive TACC selects among diversity-aware placement, topology-aware greedy, and online DQN refinement using held-out perturbation samples, relocation cost, and validation variability.}",
+            "\\caption{Objective value under topology perturbation. The validation gate compares keep-current, diversity-aware placement, topology-aware greedy, and online DQN refinement using held-out perturbation samples, relocation cost, and validation variability.}",
             "\\label{fig:objective_perturbation}",
             "\\end{figure}",
             "",

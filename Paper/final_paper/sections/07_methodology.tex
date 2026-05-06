@@ -2,7 +2,7 @@
 
 \subsection{Overview}
 
-Adaptive TACC is a three-stage online policy framework built on top of a mobility-derived graph, a node-specific demand matrix, and the currently deployed cache state. The first stage constructs strong candidate placements, including diversified popularity and topology-aware greedy placement. The second stage refines the currently deployed placement using DQN-based local search. The third stage selects among candidate placements using held-out perturbation samples, relocation cost against the deployed cache, variability, and computation cost. The method is designed around the observation that adaptation is useful only when the new placement improves the current cache enough to justify rewriting it.
+The proposed method is a three-stage online policy framework built on top of a mobility-derived graph, a node-specific demand matrix, and the currently deployed cache state. The first stage constructs strong candidate placements, including diversified popularity and topology-aware greedy placement. The second stage refines the currently deployed placement using DQN-based local search. The third stage is a lightweight validation gate that compares keep-current, diversified, greedy, and online DQN candidates using held-out perturbation samples, relocation cost against the deployed cache, variability, and computation cost. The method is designed around the observation that adaptation is useful only when the new placement improves the current cache enough to justify rewriting it.
 
 \begin{figure}[t]
 \centering
@@ -17,7 +17,7 @@ Adaptive TACC is a three-stage online policy framework built on top of a mobilit
 \node[block, below left=0.7cm and 1.7cm of demand] (greedy) {Topology-Aware Greedy};
 \node[block, below=0.7cm of demand] (diverse) {Diversified Placement};
 \node[block, below right=0.7cm and 1.7cm of demand] (dqn) {Online DQN Refinement};
-\node[block, below=2.0cm of demand] (selector) {Adaptive TACC Selector};
+\node[block, below=2.0cm of demand] (selector) {Validation Gate};
 \node[block, below=of selector] (eval) {Perturbation Evaluation};
 \draw[arrow] (trace) -- (graph);
 \draw[arrow] (graph) -- (demand);
@@ -29,7 +29,7 @@ Adaptive TACC is a three-stage online policy framework built on top of a mobilit
 \draw[arrow] (dqn) -- (selector);
 \draw[arrow] (selector) -- (eval);
 \end{tikzpicture}
-\caption{Adaptive TACC pipeline. Candidate placements are evaluated under graph perturbation against the currently deployed cache state, and the final policy is selected using cache objective, relocation cost, variability, and optimization cost.}
+\caption{Online topology-aware caching pipeline. Candidate placements are evaluated under graph perturbation against the currently deployed cache state, and the validation gate selects a deployment using cache objective, relocation cost, variability, and optimization cost.}
 \label{fig:pipeline}
 \end{figure}
 
@@ -51,11 +51,11 @@ For perturbation rate \(p\), each node is removed with probability \(p\), and ea
 
 The perturbation model is intentionally simple, but it isolates an important effect. A placement optimized for the nominal graph may rely on central nodes or short paths that disappear under perturbation. A more diverse placement may survive moderate perturbation better because more objects remain reachable. The selector uses this difference to choose among candidate policies and to decide whether DQN refinement is worth its added cost.
 
-The perturbation rate should be interpreted as an operating-regime descriptor rather than as a permanent physical failure probability. A larger \(p\) means that the controller sees fewer active APs and fewer reliable cooperative links in a validation window. This changes access paths, origin misses, redundancy relationships, and the value of replicas. The experiments stop at \(p=0.15\) because the research question is how to adapt while cooperation still exists. Beyond that range, many sampled graphs can become dominated by disconnected or near-local behavior, and the system should trigger topology re-estimation or a fallback placement mode rather than assuming that the same cooperative objective remains equally informative.
+The perturbation rate should be interpreted as an operating-regime descriptor rather than as a permanent physical failure probability. A larger \(p\) means that the controller sees fewer active APs and fewer reliable cooperative links in a validation window. This changes access paths, origin misses, redundancy relationships, and the value of replicas. The experiments evaluate \(p\) through 0.25 to test whether stronger perturbation makes the validation gate useful or whether transition-aware online DQN remains sufficient. Beyond this range, many sampled graphs can become dominated by disconnected or near-local behavior, and the system should trigger topology re-estimation or a fallback placement mode rather than assuming that the same cooperative objective remains equally informative.
 
 \subsection{Baseline Policies}
 
-The baseline set is designed to avoid weak comparisons. Random placement measures the value of unstructured diversity. Local popularity measures independent AP optimization. Global popularity measures the effect of storing the same popular objects everywhere. Diversified popularity shifts popular-object slices across APs to increase cooperative catalog coverage. Topology-aware greedy measures direct optimization of the proposed objective. Fixed Greedy+DQN measures learning-based refinement around a structured warm start. Online DQN measures transition-aware refinement from the currently deployed cache. Adaptive TACC measures regime-aware and cost-aware selection among strong candidates.
+The baseline set is designed to avoid weak comparisons. Random placement measures the value of unstructured diversity. Local popularity measures independent AP optimization. Global popularity measures the effect of storing the same popular objects everywhere. Diversified popularity shifts popular-object slices across APs to increase cooperative catalog coverage. Topology-aware greedy measures direct optimization of the proposed objective. Fixed Greedy+DQN measures learning-based refinement around a structured warm start. Online DQN measures transition-aware refinement from the currently deployed cache. The validation-gated row measures whether a cost-aware safeguard changes the deployment relative to Online DQN.
 
 \subsection{Topology-Aware Greedy Placement}
 
@@ -105,11 +105,11 @@ The DQN uses two hidden layers with ReLU activations, replay-buffer sampling, a 
 
 The learning component is therefore deliberately bounded. It is not trained to construct a full placement from scratch, which would make the action space too large and the result difficult to interpret. Instead, the DQN learns where the currently deployed solution has local weaknesses under sampled perturbations. A useful action may replace a redundant object, introduce a replica at a more resilient node, or reduce expected cooperative path length. If the proposed move fails the objective check, the placement remains unchanged. This design makes learning part of the adaptive method while preserving relocation awareness.
 
-\subsection{Adaptive TACC Selector}
+\subsection{Validation Gate}
 
-Adaptive TACC selects among diversified popularity, topology-aware greedy, and online DQN refinement. The selector evaluates each candidate against the currently deployed placement \(x^{t-1}\), so a candidate that requires many cache rewrites must earn enough access-cost or redundancy improvement to justify its relocation cost. Online DQN is trained from \(x^{t-1}\), which gives learning a concrete role: it searches for low-churn local improvements rather than proposing a fixed replacement placement.
+The validation gate selects among keep-current, diversified popularity, topology-aware greedy, and online DQN refinement. It evaluates each candidate against the currently deployed placement \(x^{t-1}\), so a candidate that requires many cache rewrites must earn enough access-cost or redundancy improvement to justify its relocation cost. Online DQN is trained from \(x^{t-1}\), which gives learning a concrete role: it searches for low-churn local improvements rather than proposing a fixed replacement placement.
 
-The selector answers a different question from the placement algorithms. Diversified popularity asks whether broad catalog coverage is enough. Topology-aware greedy asks whether directly optimizing the stochastic objective is enough. Online DQN asks whether local learned substitutions improve the deployed cache with acceptable churn. Adaptive TACC asks which of those answers is justified in the current perturbation regime after accounting for validation quality, variability, replication pressure, relocation, and optimization overhead.
+The gate answers a different question from the placement algorithms. Keep-current asks whether rewriting can be avoided. Diversified popularity asks whether broad catalog coverage is enough. Topology-aware greedy asks whether directly optimizing the stochastic objective is enough. Online DQN asks whether local learned substitutions improve the deployed cache with acceptable churn. The gate asks which of those answers is justified in the current perturbation regime after accounting for validation quality, variability, replication pressure, relocation, and optimization overhead.
 
 For each candidate policy, the selector computes
 \[
@@ -123,7 +123,7 @@ where \(\bar{J}_{\text{val}}\) is validation objective, \(\sigma_{\text{val}}\) 
 This rule keeps selection dynamic rather than fixed. If a cheap placement is already reliable, it can be selected without paying learning cost. If the current cache has local weaknesses, online DQN can be selected because it modifies the deployed placement incrementally rather than replacing it wholesale. The policy choice is therefore learned from validation evidence in each regime, not hard-coded by perturbation rate.
 
 \begin{algorithm}[t]
-\caption{Adaptive TACC Policy Selection}
+\caption{Validation-Gated Policy Selection}
 \label{alg:adaptive_selector}
 \begin{algorithmic}[1]
 \Require Cheap policies \(\Pi_0\), deployed placement \(x^{t-1}\), perturbation rate \(p\), validation sampler \(\mathcal{V}_p\)
@@ -141,4 +141,4 @@ This rule keeps selection dynamic rather than fixed. If a cheap placement is alr
 
 The greedy stage is the most expensive deterministic component. If there are \(N\) nodes, \(M\) content objects, cache capacity \(K\), and \(S\) perturbation samples per marginal evaluation, naive greedy search can require \(O(NKMNS)\) objective evaluations. Candidate filtering reduces the effective value of \(M\) by considering only high-demand objects at each node. The DQN action space has size \(NM\), and training cost scales with the number of episodes, steps per episode, and minibatch size. Since online DQN starts from the deployed placement, it does not need to learn an entire placement from an empty cache state.
 
-The selector adds validation overhead for a small set of candidate policies. In the final run, online DQN is selected in all four perturbation windows because its transition-aware refinements improve the deployed cache enough to justify relocation and computation cost. This result gives DQN a specific operational role: it is the low-churn online improvement operator, while diversified and greedy placements remain strong non-neural candidates and sanity checks.
+The gate adds validation overhead for a small set of candidate policies. In the final run, online DQN is selected in all six perturbation windows, including \(p=0.20\) and \(p=0.25\). This result is important because it prevents overclaiming: the gate is not the source of the measured gains in this experiment. It gives DQN a specific operational role as the low-churn online improvement operator, while keep-current, diversified, and greedy placements remain strong non-neural candidates and sanity checks.

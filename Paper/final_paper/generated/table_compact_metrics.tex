@@ -2,20 +2,22 @@
 \centering
 \caption{Objective and hit-ratio summary for the strongest policies.}
 \label{tab:generated_compact_metrics}
-\begin{tabular}{llrrrr}
+\scriptsize
+\setlength{\tabcolsep}{2pt}
+\begin{tabular}{llrrrrrr}
 \toprule
-Policy & Metric & $p=0.00$ & $p=0.05$ & $p=0.10$ & $p=0.15$ \\
+Policy & Metric & $p=0.00$ & $p=0.05$ & $p=0.10$ & $p=0.15$ & $p=0.20$ & $p=0.25$ \\
 \midrule
-Diversified & Objective & 2.739 & 3.472 & 3.249 & 5.252 \\
- & Hit ratio & 0.987 & 0.965 & 0.972 & 0.911 \\
-Topo-Greedy & Objective & 2.633 & 4.013 & 4.336 & 5.172 \\
- & Hit ratio & 0.987 & 0.945 & 0.935 & 0.910 \\
-Greedy+DQN & Objective & 2.467 & 3.629 & 3.963 & 4.610 \\
- & Hit ratio & 0.993 & 0.957 & 0.947 & 0.927 \\
-Online DQN & Objective & 2.209 & 3.398 & 3.284 & 3.555 \\
- & Hit ratio & 1.000 & 0.965 & 0.968 & 0.961 \\
-Adaptive TACC & Objective & 2.209 & 3.398 & 3.284 & 3.555 \\
- & Hit ratio & 1.000 & 0.965 & 0.968 & 0.961 \\
+Diversified & Objective & 2.739 & 3.472 & 3.249 & 5.252 & 3.932 & 4.649 \\
+ & Hit ratio & 0.987 & 0.965 & 0.972 & 0.911 & 0.951 & 0.929 \\
+Topo-Greedy & Objective & 2.633 & 4.013 & 4.336 & 5.172 & 5.892 & 7.467 \\
+ & Hit ratio & 0.987 & 0.945 & 0.935 & 0.910 & 0.888 & 0.840 \\
+Greedy+DQN & Objective & 2.711 & 3.512 & 3.911 & 4.353 & 4.973 & 6.280 \\
+ & Hit ratio & 0.987 & 0.962 & 0.950 & 0.936 & 0.917 & 0.877 \\
+Online DQN & Objective & 2.209 & 3.398 & 3.284 & 3.555 & 3.307 & 4.415 \\
+ & Hit ratio & 1.000 & 0.965 & 0.968 & 0.961 & 0.970 & 0.936 \\
+Validation Gate & Objective & 2.209 & 3.398 & 3.284 & 3.555 & 3.307 & 4.415 \\
+ & Hit ratio & 1.000 & 0.965 & 0.968 & 0.961 & 0.970 & 0.936 \\
 \bottomrule
 \end{tabular}
 \end{table}

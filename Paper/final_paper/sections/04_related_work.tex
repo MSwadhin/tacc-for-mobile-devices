@@ -28,7 +28,7 @@ The distinction in this study is that mobility is represented as an AP-level wei
 
 Learning-based caching has been widely studied because demand, mobility, and network conditions are non-stationary. Early learning-based proactive caching uses online learning and optimization to adjust cache content under changing popularity \cite{Blasco2014}. Deep reinforcement learning has been applied to edge caching, vehicular caching, and self-driving or multi-access edge settings \cite{Chen2021TMC,Ndikumana2020,zhou2023distributed}. DQN and Double DQN provide the replay-buffer, target-network, and stabilized Q-learning mechanisms that motivate the learning component used here \cite{mnih2015dqn,vanhasselt2016double}.
 
-Multi-agent reinforcement learning has also been used for cooperative edge caching, including bandwidth-efficient inter-agent communication and distributed decision making \cite{Min2020MARL,zhou2023distributed}. Such approaches are powerful, but they can be difficult to train when the action space is the full node-content placement matrix. Adaptive TACC uses a different design: topology-aware and diversified policies provide strong candidate cache states, and DQN performs transition-aware local refinement from the currently deployed state. This reduces the learning burden and makes the neural component easier to interpret.
+Multi-agent reinforcement learning has also been used for cooperative edge caching, including bandwidth-efficient inter-agent communication and distributed decision making \cite{Min2020MARL,zhou2023distributed}. Such approaches are powerful, but they can be difficult to train when the action space is the full node-content placement matrix. Our method uses a different design: topology-aware and diversified policies provide strong candidate cache states, and DQN performs transition-aware local refinement from the currently deployed state. This reduces the learning burden and makes the neural component easier to interpret.
 
 \subsection{Recent Vehicular, UAV, Satellite, and Federated Caching}
 
@@ -42,7 +42,7 @@ Bandit and federated methods provide another approach to adaptation. Dhara et al
 
 Graph neural networks have strong appeal for network optimization because communication networks are relational objects rather than fixed-order vectors. GNNs have been used for SDN modeling and broader communication-network optimization \cite{Rusek2019,Jiang2022Survey}. Knowledge-graph methods have also been proposed for cooperative caching in MEC-enabled heterogeneous networks \cite{wang2024knowledge}. These methods suggest that graph representation can improve generalization across topologies and capture relational structure more naturally than hand-crafted features.
 
-Adaptive TACC is graph-aware but not a full GNN method. We use explicit graph features, including degree, weighted degree, and closeness centrality, inside the DQN state, and the objective itself uses shortest-path latency and edge-weighted redundancy. This design keeps the method lightweight and reproducible while preserving a path toward future GNN extensions.
+The proposed online refiner is graph-aware but not a full GNN method. We use explicit graph features, including degree, weighted degree, and closeness centrality, inside the DQN state, and the objective itself uses shortest-path latency and edge-weighted redundancy. This design keeps the method lightweight and reproducible while preserving a path toward future GNN extensions.
 
 \subsection{Positioning}
 

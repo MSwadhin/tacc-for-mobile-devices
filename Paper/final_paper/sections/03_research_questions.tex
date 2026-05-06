@@ -11,12 +11,12 @@ We compare topology-aware placement against random placement, local popularity, 
 \textbf{RQ3: Does learning-based refinement add value beyond topology-aware greedy placement?}
 The DQN refiner starts from the currently deployed placement and searches a local neighborhood of node-content changes. This tests whether learning can improve a strong structured cache state without requiring a neural policy to learn the full placement problem from scratch.
 
-\textbf{RQ4: Is one static placement policy sufficient under sequential topology perturbation?}
-We evaluate policies across multiple perturbation rates as an online sequence. This tests whether a single placement rule remains best as AP availability and cooperative edges change, or whether a selector is needed to adapt across operating regimes while accounting for relocation and optimization cost.
+\textbf{RQ4: Is transition-aware online refinement sufficient under sequential topology perturbation?}
+We evaluate policies across multiple perturbation rates as an online sequence. This tests whether online DQN should keep refining the deployed cache as AP availability and cooperative edges change, and whether a lightweight validation gate actually changes the deployed strategy once no-op, diversified, greedy, and DQN candidates are compared with relocation and optimization cost included.
 
 \subsection{Research Hypotheses}
 
-The research questions lead to three hypotheses. First, topology-aware placement should outperform local and global popularity because it can exploit cooperative paths while controlling duplication. Second, transition-aware DQN refinement should improve a deployed placement when the current cache state is strong but not locally optimal. Third, a selector should improve operating efficiency across perturbation regimes because the relative value of precise graph placement, broad content diversity, online refinement, and cache rewriting changes as the graph is perturbed.
+The research questions lead to three hypotheses. First, topology-aware placement should outperform local and global popularity because it can exploit cooperative paths while controlling duplication. Second, transition-aware DQN refinement should improve a deployed placement when the current cache state is strong but not locally optimal. Third, a validation gate may improve operating efficiency if cheap candidates or no-op become preferable under some perturbation regimes; if it never changes the decision, the evidence should instead support a simpler conclusion that online DQN refinement is sufficient for the tested regimes.
 
 These hypotheses are intentionally modest. The study does not assume that DQN is useful merely because it is neural, that diversity is always best, or that topology awareness alone solves every perturbation condition. Instead, the experimental design asks whether each behavior is useful after relocation is charged against the previous online cache state.
 
@@ -35,16 +35,16 @@ Gap & Closure \\
 Unspecified cooperation graph & APs are represented as graph nodes; handoff counts define weighted edges and latency weights. \\
 Ambiguous dataset handling & Official Dartmouth/IEEE DataPort access is documented, and trace-compatible mobility data is generated deterministically when raw traces are unavailable. \\
 Unrealistic demand homogeneity & Demand uses Zipf popularity with AP-level spatial locality. \\
-Single weak baseline comparison & Evaluation includes random, local, global, diversified, greedy, fixed DQN-refined, online DQN-refined, and adaptive policies. \\
+Single weak baseline comparison & Evaluation includes random, local, global, diversified, greedy, fixed DQN-refined, online DQN-refined, no-op, and validation-gated policies. \\
 Conceptual learning component & DQN uses explicit state, action, reward, replay, target network, exploration, and accepted-action inference. \\
 No robustness evaluation & Policies are evaluated over repeated node and edge perturbation samples. \\
-Overclaiming one method & Adaptive TACC selects among candidate policies using validation objective, relocation, variability, and optimization cost. \\
+Overclaiming one method & The validation gate is reported explicitly and interpreted as a safeguard, not as an independent source of improvement when it selects online DQN in all tested windows. \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \subsection{Interpretation of Adaptation}
 
-Adaptation in this study is not defined as arbitrary cache rewriting. It has a precise meaning. At the placement level, online DQN refinement proposes changes to the currently deployed placement and accepts only objective-improving actions. At the regime level, Adaptive TACC selects the policy family with the best cost-aware validation score under the current perturbation rate. Therefore, adaptation occurs through bounded local refinement and policy selection, not through uncontrolled replacement of all cached content.
+Adaptation in this study is not defined as arbitrary cache rewriting. It has a precise meaning. At the placement level, online DQN refinement proposes changes to the currently deployed placement and accepts only objective-improving actions. At the deployment level, the validation gate selects the candidate with the best cost-aware validation score under the current perturbation rate, including the option to keep the current placement. Therefore, adaptation occurs through bounded local refinement and explicit validation, not through uncontrolled replacement of all cached content.
 
 Graph perturbation also has a concrete meaning. If a node is removed, cached objects stored only at that node are no longer available in the active component. If an edge is removed, shortest-path retrieval latency may increase and cooperative hits may become origin misses. If strongly connected APs remain active, redundant copies among them still contribute to redundancy cost. These changes explain why the same placement matrix can produce different access cost, hit decomposition, redundancy, and objective value under different graph samples.
