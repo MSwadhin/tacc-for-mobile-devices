@@ -37,6 +37,8 @@ The primary metric is the total objective. Lower objective indicates a better ba
 
 The hit-ratio decomposition is important. Local hit ratio is the probability mass served at the requesting node. Cooperative hit ratio is the probability mass served by another active node in the perturbed graph. Origin miss ratio is the remaining probability mass served by the origin. A policy can have a reasonable total hit ratio but still be operationally poor if most hits require long cooperative paths or if it creates excessive replication. This is why the objective and cost components are reported alongside hit ratios.
 
+Replication, redundancy, and relocation are interpreted as operational costs rather than separate success metrics. Replication is the average active replica count per active node and contributes through \(\lambda C_{\text{rep}}\). Redundancy is the edge-weighted duplicate-content overlap among active APs and contributes through \(\beta C_{\text{red}}\). Relocation is the average number of changed cache entries relative to a reference placement and contributes through \(\mu C_{\text{rel}}\). Static policies have zero reported relocation because they are evaluated against their own fixed placement; Greedy + DQN has nonzero relocation because its reference is the topology-aware greedy placement it refines.
+
 \begin{table}[t]
 \centering
 \caption{Measured performance at the nominal perturbation setting. Lower objective and access cost are better; higher hit ratio is better.}
@@ -91,6 +93,26 @@ At \(p=0.15\), Greedy + DQN becomes strongest among the candidate policies, with
 
 \begin{table}[t]
 \centering
+\caption{Best-performing strategy by perturbation regime.}
+\label{tab:strategy_regimes}
+\footnotesize
+\setlength{\tabcolsep}{2pt}
+\begin{tabular}{p{0.10\linewidth}p{0.18\linewidth}p{0.18\linewidth}p{0.32\linewidth}}
+\toprule
+Rate & Best objective policy & Adaptive TACC decision & Interpretation \\
+\midrule
+\(0.00\) & Greedy + DQN & Topology-Aware Greedy & DQN improves objective only from 2.633 to 2.632, so the selector avoids extra optimization cost. \\
+\(0.05\) & Diversified Popularity & Diversified Popularity & Moderate perturbation rewards broader catalog coverage. \\
+\(0.10\) & Diversified Popularity & Diversified Popularity & Diversity remains stronger than precise graph optimization when some holders and paths disappear. \\
+\(0.15\) & Greedy + DQN & Greedy + DQN & High-churn validation instability makes local learned refinement worthwhile. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The proposed strong methods outperform the simple baselines in every tested perturbation regime. Random, local popularity, and global popularity never achieve the lowest objective. Topology-aware greedy, Greedy + DQN, and diversified popularity each outperform those simple baselines because they exploit at least one cooperative property: graph-aware retrieval, learned local refinement, or catalog diversity. The adaptive result should therefore be read after the individual policy results. Adaptive TACC is not hiding weak base methods; it selects among strong candidates whose relative ranking changes with perturbation.
+
+\begin{table}[t]
+\centering
 \caption{Policy chosen by Adaptive TACC at each perturbation rate.}
 \label{tab:selected_policy}
 \begin{tabular}{lr}
@@ -112,6 +134,8 @@ Perturbation rate & Selected policy \\
 The cost decomposition clarifies why objective values do not always follow hit ratio alone. A placement with high hit ratio may still have higher objective if it creates large replication or redundancy cost. Conversely, a placement with slightly lower hit ratio may be preferable if it serves demand through shorter paths or maintains lower churn. This is why diversified popularity is competitive under moderate perturbation but not uniformly dominant: it improves coverage but can carry replication and redundancy costs that become less attractive under high churn.
 
 The DQN result is also interpretable through cost components. Since the refiner starts from greedy, it does not need to discover basic popularity or topology structure. It only needs to find local changes that reduce access cost or redundancy enough to justify relocation. The accepted-action rule ensures that a proposed change cannot reduce measured quality during inference.
+
+The relocation column should not be confused with replication. Replication is nonzero for cache-placing policies because each active cache stores objects. Relocation is zero for most standalone policies because no transition from a previous placement is being charged in those rows. The nonzero DQN relocation reports the average cache entries changed relative to topology-aware greedy. This distinction matters because replication affects storage and update pressure, redundancy affects whether replicas are useful or wasteful given AP relatedness, and relocation affects how disruptive adaptation would be in operation.
 
 \subsection{Research Question Outcomes}
 

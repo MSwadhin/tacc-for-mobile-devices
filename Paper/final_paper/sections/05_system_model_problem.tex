@@ -32,6 +32,8 @@ where \(p\) is the perturbation rate. In the experimental model, nodes are remov
 
 Perturbation changes the value of a placement without changing the placement matrix itself. If a holder node is removed, its cached objects cannot serve active requests. If an edge is removed, shortest paths can become longer or disconnected. If a placement concentrates many useful objects at a few central nodes, it may perform well on the nominal graph but become fragile under node perturbation. If a placement spreads objects more broadly, it may trade nominal precision for perturbation robustness.
 
+The evaluated perturbation range is \(p\leq 0.15\). This range is chosen because the study is concerned with degraded-but-operational cooperation, not complete network fragmentation. For substantially larger \(p\), the largest connected component can shrink enough that cooperative caching approaches a local-only or outage regime. In that case, the correct control action is not simply to keep applying the same placement rule; the controller should re-estimate the active graph, lower the cost of relying on removed nodes, and possibly fall back to low-overhead local or diversified caching until a new stable topology window is observed. The present evaluation therefore tests the range in which AP cooperation remains meaningful while still being perturbed enough to change which placement family is best.
+
 \subsection{Access Cost}
 
 Let \(L_{\text{local}}\) be the latency of a local cache hit and \(L_{\text{origin}}\) be the latency of retrieving content from the origin. Let \(L(i,j;\tilde{G})\) be the cooperative retrieval latency from node \(j\) to node \(i\), computed as a non-decreasing function of shortest-path distance in the active perturbed graph. For a request for content \(c\) at node \(i\), the best non-local retrieval latency is
@@ -84,6 +86,8 @@ C_{\text{rel}}(x,x^0)
 \delta_c |x_{i,c}-x^0_{i,c}|.
 \]
 This term is important for adaptive caching. Without relocation cost, a learning component could appear to improve access cost by rewriting too much of the cache state. Relocation cost makes cache churn visible in the objective.
+
+The reported metrics use normalized versions of these quantities. Replication is reported as the average number of active cached replicas per active node. Redundancy is reported as edge-weighted duplicate overlap per active node, and the redundancy ratio normalizes that overlap by the maximum weighted duplicate overlap possible for the active graph and catalog. Relocation is reported as the average number of placement entries that differ from the reference placement on active nodes. Static policies use their own placement as the reference when reporting standalone evaluation, so their relocation is zero by construction. The DQN-refined policy uses topology-aware greedy as its reference, so its relocation value measures the amount of cache rewriting introduced by learning-based refinement.
 
 \subsection{Optimization Objective}
 

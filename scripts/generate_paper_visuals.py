@@ -237,7 +237,7 @@ def metrics_table(summary: pd.DataFrame) -> None:
     lines = [
         "\\begin{table}[t]",
         "\\centering",
-        "\\caption{Paper-ready summary of objective and hit ratio for the strongest policies.}",
+        "\\caption{Objective and hit-ratio summary for the strongest policies.}",
         "\\label{tab:generated_compact_metrics}",
         "\\begin{tabular}{llrrrr}",
         "\\toprule",

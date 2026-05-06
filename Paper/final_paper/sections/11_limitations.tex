@@ -8,4 +8,6 @@ The third limitation is scale. The final experiment uses 20 nodes and 48 objects
 
 The fourth limitation is selector dependence on validation perturbations. Adaptive TACC assumes that held-out perturbation samples resemble the test regime. If topology changes in a qualitatively different way, the selector may choose a suboptimal policy. This can be addressed with online monitoring, confidence intervals, and periodic retraining.
 
+The fifth limitation is perturbation range. The experiments evaluate \(p\leq 0.15\), where the graph remains degraded but cooperative caching is still meaningful. Higher perturbation rates should be studied as a separate failure-mode setting with topology re-estimation, fallback placement, and recovery policies.
+
 Finally, the DQN uses explicit graph features rather than a full GNN. This keeps the model lightweight, but a GNN may generalize better across graph sizes and node permutations. The present method should therefore be seen as a strong baseline and research scaffold for future graph-learning extensions.
