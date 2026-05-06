@@ -5,7 +5,7 @@ This repository contains the paper sources and reproducible implementation for t
 ## What Is Included
 
 - `Paper/final_paper/`: final paper sources.
-- `src/tacc/`: reusable Python implementation for data loading, graph construction, demand generation, placement policies, DQN refinement, and metrics.
+- `src/tacc/`: reusable Python implementation for data loading, graph construction, demand generation, placement policies, transition-aware online DQN refinement, and metrics.
 - `scripts/download_dataset.py`: records official Dartmouth/CRAWDAD dataset access pages and writes an access note.
 - `scripts/run_experiments.py`: runs the full caching experiment and writes metrics.
 - `results/final/`: final measured run outputs.

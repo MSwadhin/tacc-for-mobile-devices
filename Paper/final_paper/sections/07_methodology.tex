@@ -2,7 +2,7 @@
 
 \subsection{Overview}
 
-Adaptive TACC is a three-stage policy framework built on top of a mobility-derived graph and a node-specific demand matrix. The first stage constructs candidate placements, including standard baselines and a topology-aware greedy placement. The second stage refines the greedy placement using DQN-based local search when refinement is justified. The third stage selects among strong candidate policies using held-out perturbation samples and a computation-cost penalty. The method is designed around the observation that different perturbation regimes favor different placement behavior and different optimization budgets.
+Adaptive TACC is a three-stage online policy framework built on top of a mobility-derived graph, a node-specific demand matrix, and the currently deployed cache state. The first stage constructs strong candidate placements, including diversified popularity and topology-aware greedy placement. The second stage refines the currently deployed placement using DQN-based local search. The third stage selects among candidate placements using held-out perturbation samples, relocation cost against the deployed cache, variability, and computation cost. The method is designed around the observation that adaptation is useful only when the new placement improves the current cache enough to justify rewriting it.
 
 \begin{figure}[t]
 \centering
@@ -16,7 +16,7 @@ Adaptive TACC is a three-stage policy framework built on top of a mobility-deriv
 \node[block, below=of graph] (demand) {Zipf-Locality Demand};
 \node[block, below left=0.7cm and 1.7cm of demand] (greedy) {Topology-Aware Greedy};
 \node[block, below=0.7cm of demand] (diverse) {Diversified Placement};
-\node[block, below right=0.7cm and 1.7cm of demand] (dqn) {DQN Refinement};
+\node[block, below right=0.7cm and 1.7cm of demand] (dqn) {Online DQN Refinement};
 \node[block, below=2.0cm of demand] (selector) {Adaptive TACC Selector};
 \node[block, below=of selector] (eval) {Perturbation Evaluation};
 \draw[arrow] (trace) -- (graph);
@@ -29,7 +29,7 @@ Adaptive TACC is a three-stage policy framework built on top of a mobility-deriv
 \draw[arrow] (dqn) -- (selector);
 \draw[arrow] (selector) -- (eval);
 \end{tikzpicture}
-\caption{Adaptive TACC pipeline. Candidate placements are evaluated under graph perturbation, and the final policy is selected from multiple placement families using both cache objective and optimization cost.}
+\caption{Adaptive TACC pipeline. Candidate placements are evaluated under graph perturbation against the currently deployed cache state, and the final policy is selected using cache objective, relocation cost, variability, and optimization cost.}
 \label{fig:pipeline}
 \end{figure}
 
@@ -55,7 +55,7 @@ The perturbation rate should be interpreted as an operating-regime descriptor ra
 
 \subsection{Baseline Policies}
 
-The baseline set is designed to avoid weak comparisons. Random placement measures the value of unstructured diversity. Local popularity measures independent AP optimization. Global popularity measures the effect of storing the same popular objects everywhere. Diversified popularity shifts popular-object slices across APs to increase cooperative catalog coverage. Topology-aware greedy measures direct optimization of the proposed objective. Greedy plus DQN measures learning-based refinement around a structured warm start. Adaptive TACC measures regime-aware and cost-aware selection among strong candidates.
+The baseline set is designed to avoid weak comparisons. Random placement measures the value of unstructured diversity. Local popularity measures independent AP optimization. Global popularity measures the effect of storing the same popular objects everywhere. Diversified popularity shifts popular-object slices across APs to increase cooperative catalog coverage. Topology-aware greedy measures direct optimization of the proposed objective. Fixed Greedy+DQN measures learning-based refinement around a structured warm start. Online DQN measures transition-aware refinement from the currently deployed cache. Adaptive TACC measures regime-aware and cost-aware selection among strong candidates.
 
 \subsection{Topology-Aware Greedy Placement}
 
@@ -96,20 +96,20 @@ The candidate restriction is a computational device, not a change in the optimiz
 
 \subsection{DQN Refinement}
 
-The DQN refiner treats cache modification as a local sequential decision problem. The state concatenates the binary placement matrix, the demand matrix, and graph features. Graph features include normalized degree, weighted degree, and closeness centrality. The action space is a node-content toggle. If adding an object to a full cache would violate capacity, the lowest-demand cached object at that node is evicted. The reward is objective improvement:
+The DQN refiner treats cache modification as a local sequential decision problem. Unlike a fixed DQN placement that always starts from topology-aware greedy, the online refiner starts from the currently deployed cache state \(x^{t-1}\). The state concatenates the current binary placement matrix, the demand matrix, and graph features. Graph features include normalized degree, weighted degree, and closeness centrality. The action space is a node-content toggle. If adding an object to a full cache would violate capacity, the lowest-demand cached object at that node is evicted. The reward is online objective improvement:
 \[
-r_t=J(x_t,\tilde{G}_t)-J(x_{t+1},\tilde{G}_t).
+r_t=J(x_t,x^{t-1},\tilde{G}_t)-J(x_{t+1},x^{t-1},\tilde{G}_t).
 \]
 
-The DQN uses two hidden layers with ReLU activations, replay-buffer sampling, a target network, discount factor 0.92, learning rate 0.001, and epsilon-greedy exploration. During inference, an action is accepted only if it improves the measured objective. This accepted-action rule is critical because it prevents the learned component from degrading the greedy warm start. In effect, the neural network proposes local modifications, and the objective acts as a safety filter.
+The DQN uses two hidden layers with ReLU activations, replay-buffer sampling, a target network, discount factor 0.92, learning rate 0.001, and epsilon-greedy exploration. During inference, an action is accepted only if it improves the measured online objective averaged over perturbation samples. This accepted-action rule is critical because it prevents the learned component from degrading the deployed cache state. In effect, the neural network proposes local modifications, and the objective acts as a safety filter.
 
-The learning component is therefore deliberately bounded. It is not trained to construct a full placement from scratch, which would make the action space too large and the result difficult to interpret. Instead, the DQN learns where the greedy solution has local weaknesses under sampled perturbations. A useful action may replace a redundant object, introduce a replica at a more resilient node, or reduce expected cooperative path length. If the proposed move fails the objective check, the placement remains unchanged. This design makes learning part of the adaptive method while preserving the reproducibility and stability of the structured optimizer.
+The learning component is therefore deliberately bounded. It is not trained to construct a full placement from scratch, which would make the action space too large and the result difficult to interpret. Instead, the DQN learns where the currently deployed solution has local weaknesses under sampled perturbations. A useful action may replace a redundant object, introduce a replica at a more resilient node, or reduce expected cooperative path length. If the proposed move fails the objective check, the placement remains unchanged. This design makes learning part of the adaptive method while preserving relocation awareness.
 
 \subsection{Adaptive TACC Selector}
 
-Adaptive TACC selects among diversified popularity, topology-aware greedy, and DQN-refined greedy. The selector is designed to reduce amortized complexity. It first evaluates the cheaper diversified and greedy candidates. DQN refinement is considered only when the cheap candidates are close in score or when the best cheap candidate has high validation variability. This prevents the system from paying DQN refinement cost when a cheaper placement is already reliable.
+Adaptive TACC selects among diversified popularity, topology-aware greedy, and online DQN refinement. The selector evaluates each candidate against the currently deployed placement \(x^{t-1}\), so a candidate that requires many cache rewrites must earn enough access-cost or redundancy improvement to justify its relocation cost. Online DQN is trained from \(x^{t-1}\), which gives learning a concrete role: it searches for low-churn local improvements rather than proposing a fixed replacement placement.
 
-The selector answers a different question from the placement algorithms. Diversified popularity asks whether broad catalog coverage is enough. Topology-aware greedy asks whether directly optimizing the stochastic objective is enough. DQN refinement asks whether local learned substitutions improve a strong warm start. Adaptive TACC asks which of those answers is justified in the current perturbation regime after accounting for validation quality, variability, replication pressure, and optimization overhead.
+The selector answers a different question from the placement algorithms. Diversified popularity asks whether broad catalog coverage is enough. Topology-aware greedy asks whether directly optimizing the stochastic objective is enough. Online DQN asks whether local learned substitutions improve the deployed cache with acceptable churn. Adaptive TACC asks which of those answers is justified in the current perturbation regime after accounting for validation quality, variability, replication pressure, relocation, and optimization overhead.
 
 For each candidate policy, the selector computes
 \[
@@ -120,27 +120,25 @@ where \(\bar{J}_{\text{val}}\) is validation objective, \(\sigma_{\text{val}}\) 
 \pi^*=\arg\min_{\pi}S(\pi).
 \]
 
-This rule keeps selection dynamic rather than fixed. When the graph is stable, a small DQN improvement can be rejected because the compute and relocation costs outweigh the marginal objective reduction. Under moderate perturbation, diversified placement can be selected because broader content coverage survives missing nodes and edges. Under higher churn, DQN can be selected if validation samples show that cheap candidates are unstable and learned local substitutions reduce objective enough to justify their cost. The policy choice is therefore learned from validation evidence in each regime, not hard-coded by perturbation rate.
+This rule keeps selection dynamic rather than fixed. If a cheap placement is already reliable, it can be selected without paying learning cost. If the current cache has local weaknesses, online DQN can be selected because it modifies the deployed placement incrementally rather than replacing it wholesale. The policy choice is therefore learned from validation evidence in each regime, not hard-coded by perturbation rate.
 
 \begin{algorithm}[t]
 \caption{Adaptive TACC Policy Selection}
 \label{alg:adaptive_selector}
 \begin{algorithmic}[1]
-\Require Cheap policies \(\Pi_0\), optional DQN policy \(\pi_D\), perturbation rate \(p\), validation sampler \(\mathcal{V}_p\)
+\Require Cheap policies \(\Pi_0\), deployed placement \(x^{t-1}\), perturbation rate \(p\), validation sampler \(\mathcal{V}_p\)
 \For{each policy \(\pi \in \Pi_0\)}
-    \State Evaluate \(\pi\) on held-out perturbation samples from \(\mathcal{V}_p\)
+    \State Evaluate \(\pi\) against \(x^{t-1}\) on held-out perturbation samples from \(\mathcal{V}_p\)
     \State Compute cost-aware score \(S(\pi)\)
 \EndFor
-\If{cheap scores are close or best cheap score is unstable}
-    \State Train/evaluate DQN-refined policy \(\pi_D\)
-    \State Compute \(S(\pi_D)\) including optimization cost and instability credit
-\EndIf
+\State Train online DQN from \(x^{t-1}\) and produce refined placement \(\pi_D(x^{t-1})\)
+\State Compute \(S(\pi_D)\) including relocation, optimization cost, and instability credit
 \State \Return policy with minimum computed score \(S(\pi)\)
 \end{algorithmic}
 \end{algorithm}
 
 \subsection{Computational Complexity}
 
-The greedy stage is the most expensive deterministic component. If there are \(N\) nodes, \(M\) content objects, cache capacity \(K\), and \(S\) perturbation samples per marginal evaluation, naive greedy search can require \(O(NKMNS)\) objective evaluations. Candidate filtering reduces the effective value of \(M\) by considering only high-demand objects at each node. The DQN action space has size \(NM\), and training cost scales with the number of episodes, steps per episode, and minibatch size. Since DQN starts from the greedy placement, it does not need to learn an entire placement from an empty cache state.
+The greedy stage is the most expensive deterministic component. If there are \(N\) nodes, \(M\) content objects, cache capacity \(K\), and \(S\) perturbation samples per marginal evaluation, naive greedy search can require \(O(NKMNS)\) objective evaluations. Candidate filtering reduces the effective value of \(M\) by considering only high-demand objects at each node. The DQN action space has size \(NM\), and training cost scales with the number of episodes, steps per episode, and minibatch size. Since online DQN starts from the deployed placement, it does not need to learn an entire placement from an empty cache state.
 
-The selector adds validation overhead for a small set of candidate policies, but it can reduce amortized cost by avoiding DQN refinement in regimes where cheaper policies are clearly sufficient. In the final run, DQN is considered for two of the four perturbation rates and selected for one of them. This behavior is more efficient than invoking the most expensive refinement path in every regime.
+The selector adds validation overhead for a small set of candidate policies. In the final run, online DQN is selected in all four perturbation windows because its transition-aware refinements improve the deployed cache enough to justify relocation and computation cost. This result gives DQN a specific operational role: it is the low-churn online improvement operator, while diversified and greedy placements remain strong non-neural candidates and sanity checks.

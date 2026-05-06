@@ -50,7 +50,14 @@ POLICY_COMPLEXITY = {
     "diversified_popularity": 0.05,
     "topology_greedy": 0.35,
     "hybrid_dqn": 1.00,
+    "online_dqn": 0.85,
 }
+
+
+def _bootstrap_reference(policy: str, placement: np.ndarray, greedy: np.ndarray) -> np.ndarray:
+    if policy == "hybrid_dqn":
+        return greedy
+    return placement
 
 
 def _validation_metrics(
@@ -161,8 +168,9 @@ def run_experiment(config: ExperimentConfig) -> dict[str, Path]:
             dqn_candidate_rates.append(rate)
 
     training_stats: dict[str, float | bool] = {
-        "dqn_trained": bool(dqn_candidate_rates),
+        "offline_dqn_trained": bool(dqn_candidate_rates),
         "dqn_candidate_rate_count": float(len(dqn_candidate_rates)),
+        "online_dqn_runs": 0.0,
     }
     if dqn_candidate_rates:
         dqn_training_rate = float(np.mean(dqn_candidate_rates))
@@ -184,29 +192,47 @@ def run_experiment(config: ExperimentConfig) -> dict[str, Path]:
     rows: list[dict[str, float | str]] = []
     detail_rows: list[dict[str, float | str | int]] = []
     selector_decisions: dict[str, dict[str, float | str]] = {}
+    online_reference = greedy.copy()
+    previous_adaptive_policy = "bootstrap_topology_greedy"
+    previous_policy_placements: dict[str, np.ndarray] = {}
     for rate in config.perturbation_rates:
-        selector_candidates = ["diversified_popularity", "topology_greedy"]
-        if "hybrid_dqn" in placements and bool(dqn_gate[f"{rate:.2f}"]["dqn_considered"]):
-            selector_candidates.append("hybrid_dqn")
+        candidate_placements = {
+            "diversified_popularity": placements["diversified_popularity"],
+            "topology_greedy": placements["topology_greedy"],
+        }
+        online_dqn, online_dqn_stats = train_and_refine(
+            graph,
+            nodes,
+            demand,
+            online_reference,
+            config.cache_capacity,
+            cost_cfg,
+            perturb_rate=rate,
+            seed=config.seed + 50000 + int(rate * 1000),
+            cfg=dqn_cfg,
+        )
+        candidate_placements["online_dqn"] = online_dqn
+        training_stats["online_dqn_runs"] = float(training_stats["online_dqn_runs"]) + 1.0
+        training_stats[f"online_dqn_{rate:.2f}_objective"] = online_dqn_stats["nominal_objective"]
+        training_stats[f"online_dqn_{rate:.2f}_loss"] = online_dqn_stats["training_loss"]
+        training_stats[f"online_dqn_{rate:.2f}_relocation_entries"] = float(
+            np.logical_xor(online_dqn, online_reference).sum()
+        )
         validation_scores: dict[str, float] = {}
-        for policy in selector_candidates:
-            placement = placements[policy]
-            initial = greedy if policy == "hybrid_dqn" else placement
-            validation_frame = base_validation.get(rate, {}).get(policy)
-            if validation_frame is None:
-                validation_frame = _validation_metrics(
-                    graph,
-                    nodes,
-                    placement,
-                    demand,
-                    initial,
-                    cost_cfg,
-                    rate,
-                    validation_samples,
-                    config.seed + 10000,
-                )
+        for policy, placement in candidate_placements.items():
+            validation_frame = _validation_metrics(
+                graph,
+                nodes,
+                placement,
+                demand,
+                online_reference,
+                cost_cfg,
+                rate,
+                validation_samples,
+                config.seed + 10000,
+            )
             validation_scores[policy] = _selector_score(policy, validation_frame, rate, config)
-            if policy == "hybrid_dqn":
+            if policy == "online_dqn":
                 gate = dqn_gate[f"{rate:.2f}"]
                 cheap_std = float(gate["best_base_objective_std"])
                 instability = max(0.0, cheap_std - config.dqn_trigger_std)
@@ -214,16 +240,20 @@ def run_experiment(config: ExperimentConfig) -> dict[str, Path]:
         selected_policy = min(validation_scores, key=validation_scores.get)
         selector_decisions[f"{rate:.2f}"] = {
             **{f"score_{policy}": score for policy, score in validation_scores.items()},
+            "previous_policy": previous_adaptive_policy,
             "selected_policy": selected_policy,
+            "online_dqn_relocation_entries": float(np.logical_xor(online_dqn, online_reference).sum()),
         }
 
         for policy, placement in placements.items():
+            initial = previous_policy_placements.get(policy)
+            if initial is None:
+                initial = _bootstrap_reference(policy, placement, greedy)
             metric_rows = []
             for sample in range(config.eval_samples):
                 rng_seed = config.seed + int(rate * 1000) + sample
                 rng = np.random.default_rng(rng_seed)
                 g = perturb_graph(graph, rng, remove_node_rate=rate, remove_edge_rate=rate / 2.0)
-                initial = greedy if policy == "hybrid_dqn" else placement
                 metrics = evaluate_placement(g, nodes, placement, demand, initial, cost_cfg)
                 metric_rows.append(metrics)
                 detail_rows.append(
@@ -243,9 +273,36 @@ def run_experiment(config: ExperimentConfig) -> dict[str, Path]:
                     "objective_std": float(pd.DataFrame(metric_rows)["objective"].std(ddof=1)),
                 }
             )
+            previous_policy_placements[policy] = placement.copy()
 
-        selected_placement = placements[selected_policy]
-        selected_initial = greedy if selected_policy == "hybrid_dqn" else selected_placement
+        online_metric_rows = []
+        for sample in range(config.eval_samples):
+            rng = np.random.default_rng(config.seed + int(rate * 1000) + sample)
+            g = perturb_graph(graph, rng, remove_node_rate=rate, remove_edge_rate=rate / 2.0)
+            metrics = evaluate_placement(g, nodes, online_dqn, demand, online_reference, cost_cfg)
+            online_metric_rows.append(metrics)
+            detail_rows.append(
+                {
+                    "policy": "online_dqn",
+                    "previous_policy": previous_adaptive_policy,
+                    "perturbation_rate": rate,
+                    "sample": sample,
+                    **metrics,
+                }
+            )
+        online_averaged = average_metrics(online_metric_rows)
+        rows.append(
+            {
+                "policy": "online_dqn",
+                "previous_policy": previous_adaptive_policy,
+                "perturbation_rate": rate,
+                **online_averaged,
+                "objective_std": float(pd.DataFrame(online_metric_rows)["objective"].std(ddof=1)),
+            }
+        )
+
+        selected_placement = candidate_placements[selected_policy]
+        selected_initial = online_reference
         metric_rows = []
         for sample in range(config.eval_samples):
             rng = np.random.default_rng(config.seed + int(rate * 1000) + sample)
@@ -255,6 +312,7 @@ def run_experiment(config: ExperimentConfig) -> dict[str, Path]:
             detail_rows.append(
                 {
                     "policy": "adaptive_tacc",
+                    "previous_policy": previous_adaptive_policy,
                     "selected_policy": selected_policy,
                     "perturbation_rate": rate,
                     "sample": sample,
@@ -265,12 +323,15 @@ def run_experiment(config: ExperimentConfig) -> dict[str, Path]:
         rows.append(
             {
                 "policy": "adaptive_tacc",
+                "previous_policy": previous_adaptive_policy,
                 "selected_policy": selected_policy,
                 "perturbation_rate": rate,
                 **averaged,
                 "objective_std": float(pd.DataFrame(metric_rows)["objective"].std(ddof=1)),
             }
         )
+        online_reference = selected_placement.copy()
+        previous_adaptive_policy = selected_policy
 
     summary = pd.DataFrame(rows)
     summary_path = output_dir / "summary_metrics.csv"
@@ -288,6 +349,7 @@ def run_experiment(config: ExperimentConfig) -> dict[str, Path]:
         "training_stats": training_stats,
         "dqn_gate": dqn_gate,
         "selector_decisions": selector_decisions,
+        "online_relocation_reference": "Adaptive TACC evaluates each selected placement against the previously deployed Adaptive TACC placement; the online horizon is bootstrapped from topology-aware greedy.",
         "config": asdict(config),
     }
     stats_path = output_dir / "run_metadata.json"

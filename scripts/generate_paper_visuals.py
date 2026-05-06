@@ -25,6 +25,7 @@ DISPLAY = {
     "diversified_popularity": "Diversified",
     "topology_greedy": "Topo-Greedy",
     "hybrid_dqn": "Greedy+DQN",
+    "online_dqn": "Online DQN",
     "adaptive_tacc": "Adaptive TACC",
 }
 
@@ -35,6 +36,7 @@ COLORS = {
     "diversified_popularity": "orange",
     "topology_greedy": "teal",
     "hybrid_dqn": "purple",
+    "online_dqn": "green",
     "adaptive_tacc": "red",
 }
 
@@ -53,7 +55,7 @@ def load_summary() -> pd.DataFrame:
 
 
 def objective_chart(summary: pd.DataFrame) -> None:
-    policies = ["diversified_popularity", "topology_greedy", "hybrid_dqn", "adaptive_tacc"]
+    policies = ["diversified_popularity", "topology_greedy", "hybrid_dqn", "online_dqn", "adaptive_tacc"]
     rates = sorted(summary["perturbation_rate"].unique())
     values = summary[summary["policy"].isin(policies)]["objective"]
     ymin = float(values.min()) * 0.92
@@ -91,12 +93,12 @@ def objective_chart(summary: pd.DataFrame) -> None:
         lines.append(f"\\draw[{color}, {style}] {coord_text};")
         for x, y in coords:
             lines.append(f"\\fill[{color}] ({x:.2f},{y:.2f}) circle (1.8pt);")
-        ly = 3.15 - pidx * 0.32
+        ly = 3.20 - pidx * 0.27
         lines.append(f"\\draw[{color}, {style}] (7.75,{ly:.2f}) -- (8.20,{ly:.2f});")
         lines.append(f"\\node[right] at (8.25,{ly:.2f}) {{{DISPLAY[policy]}}};")
     lines += [
         "\\end{tikzpicture}",
-        "\\caption{Objective trends for the strongest placement policies across perturbation rates. Adaptive TACC follows a cost-aware regime-specific policy rather than forcing one static placement rule or always invoking DQN refinement.}",
+        "\\caption{Objective trends for the strongest placement policies across perturbation rates. Online DQN and Adaptive TACC coincide in this run because transition-aware refinement improves the deployed cache enough to justify relocation and computation cost in every tested window.}",
         "\\label{fig:generated_objective_trends}",
         "\\end{figure}",
     ]
@@ -152,10 +154,16 @@ def selector_pie(summary: pd.DataFrame) -> None:
     ]
     label_map = {
         "hybrid_dqn": "Greedy+DQN",
+        "online_dqn": "Online DQN",
         "diversified_popularity": "Diversified",
         "topology_greedy": "Topo-Greedy",
     }
-    colors = {"hybrid_dqn": "purple", "diversified_popularity": "orange", "topology_greedy": "teal"}
+    colors = {
+        "hybrid_dqn": "purple",
+        "online_dqn": "green",
+        "diversified_popularity": "orange",
+        "topology_greedy": "teal",
+    }
     for policy, count in counts.items():
         frac = count / total
         end = start + frac * 360.0
@@ -180,7 +188,7 @@ def selector_pie(summary: pd.DataFrame) -> None:
         )
     lines += [
         "\\end{tikzpicture}",
-        "\\caption{Adaptive TACC policy-selection frequency across the four perturbation regimes. The cost-aware selector uses topology-aware greedy when DQN's marginal gain is too small to justify added computation, diversified placement in moderate perturbation, and DQN refinement when high-churn instability makes refinement worthwhile.}",
+        "\\caption{Adaptive TACC policy-selection frequency across the four perturbation regimes under sequential online relocation. Online DQN is selected in this run because transition-aware refinement improves the currently deployed cache enough to justify the measured cache rewrites.}",
         "\\label{fig:generated_selector_pie}",
         "\\end{figure}",
     ]
@@ -189,7 +197,7 @@ def selector_pie(summary: pd.DataFrame) -> None:
 
 def cost_components(summary: pd.DataFrame) -> None:
     rate = 0.0
-    policies = ["diversified_popularity", "topology_greedy", "hybrid_dqn", "adaptive_tacc"]
+    policies = ["diversified_popularity", "topology_greedy", "hybrid_dqn", "online_dqn", "adaptive_tacc"]
     rows = summary[(summary["perturbation_rate"] == rate) & (summary["policy"].isin(policies))].copy()
     rows["rep_penalty"] = 0.02 * rows["replication_cost"]
     rows["red_penalty"] = 18.0 * rows["redundancy_cost"]
@@ -210,7 +218,7 @@ def cost_components(summary: pd.DataFrame) -> None:
         ("rel_penalty", "red!45", "Relocation"),
     ]
     for ridx, (_, row) in enumerate(rows.iterrows()):
-        x = 1.05 + ridx * 1.45
+        x = 0.95 + ridx * 1.15
         y = 0.45
         for col, color, _ in components:
             h = float(row[col]) * scale
@@ -232,7 +240,7 @@ def cost_components(summary: pd.DataFrame) -> None:
 
 
 def metrics_table(summary: pd.DataFrame) -> None:
-    policies = ["diversified_popularity", "topology_greedy", "hybrid_dqn", "adaptive_tacc"]
+    policies = ["diversified_popularity", "topology_greedy", "hybrid_dqn", "online_dqn", "adaptive_tacc"]
     rates = [0.00, 0.05, 0.10, 0.15]
     lines = [
         "\\begin{table}[t]",

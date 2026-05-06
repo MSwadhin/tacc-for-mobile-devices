@@ -24,6 +24,7 @@ class DQNConfig:
     epsilon_end: float = 0.05
     replay_size: int = 5000
     hidden_dim: int = 192
+    inference_samples: int = 6
 
 
 class QNet(nn.Module):
@@ -66,6 +67,25 @@ def _apply_action(placement: np.ndarray, action: int, demand: np.ndarray, capaci
         x[i, victim] = False
     x[i, c] = True
     return x
+
+
+def _expected_objective(
+    graph: nx.Graph,
+    nodes: list[str],
+    placement: np.ndarray,
+    demand: np.ndarray,
+    reference: np.ndarray,
+    cost_cfg: CostConfig,
+    perturb_rate: float,
+    samples: int,
+    seed: int,
+) -> float:
+    values = []
+    for sample in range(samples):
+        rng = np.random.default_rng(seed + sample)
+        g = perturb_graph(graph, rng, remove_node_rate=perturb_rate, remove_edge_rate=perturb_rate / 2.0)
+        values.append(evaluate_placement(g, nodes, placement, demand, reference, cost_cfg)["objective"])
+    return float(np.mean(values))
 
 
 def train_and_refine(
@@ -134,7 +154,17 @@ def train_and_refine(
             target.load_state_dict(q.state_dict())
 
     refined = initial_placement.copy()
-    best = evaluate_placement(graph, nodes, refined, demand, initial_placement, cost_cfg)["objective"]
+    best = _expected_objective(
+        graph,
+        nodes,
+        refined,
+        demand,
+        initial_placement,
+        cost_cfg,
+        perturb_rate,
+        cfg.inference_samples,
+        seed + 100000,
+    )
     for _ in range(cfg.steps_per_episode * 2):
         s = _state(refined, demand, features)
         with torch.no_grad():
@@ -142,7 +172,17 @@ def train_and_refine(
         improved = False
         for action_tensor in ranked[: min(40, action_dim)]:
             candidate = _apply_action(refined, int(action_tensor.item()), demand, capacity)
-            score = evaluate_placement(graph, nodes, candidate, demand, initial_placement, cost_cfg)["objective"]
+            score = _expected_objective(
+                graph,
+                nodes,
+                candidate,
+                demand,
+                initial_placement,
+                cost_cfg,
+                perturb_rate,
+                cfg.inference_samples,
+                seed + 100000,
+            )
             if score < best:
                 refined, best = candidate, score
                 improved = True
@@ -151,4 +191,3 @@ def train_and_refine(
             break
 
     return refined, {"training_loss": loss_value, "nominal_objective": best}
-

@@ -4,13 +4,26 @@
   "trace_rows": 25600,
   "used_synthetic_fallback": true,
   "top_global_content_probability": 0.17143528163433075,
-  "runtime_seconds": 147.36237001419067,
+  "runtime_seconds": 203.50897192955017,
   "training_stats": {
-    "dqn_trained": true,
+    "offline_dqn_trained": true,
     "dqn_candidate_rate_count": 2.0,
+    "online_dqn_runs": 4.0,
     "training_loss": 0.007701237685978413,
-    "nominal_objective": 2.6317327666848374,
-    "dqn_training_rate": 0.075
+    "nominal_objective": 2.5377866484425593,
+    "dqn_training_rate": 0.075,
+    "online_dqn_0.00_objective": 2.2090639016494005,
+    "online_dqn_0.00_loss": 0.00022559668286703527,
+    "online_dqn_0.00_relocation_entries": 3.0,
+    "online_dqn_0.05_objective": 2.5286239439433245,
+    "online_dqn_0.05_loss": 0.004311575088649988,
+    "online_dqn_0.05_relocation_entries": 6.0,
+    "online_dqn_0.10_objective": 3.0366704795239854,
+    "online_dqn_0.10_loss": 0.007654685527086258,
+    "online_dqn_0.10_relocation_entries": 9.0,
+    "online_dqn_0.15_objective": 2.791051634371661,
+    "online_dqn_0.15_loss": 0.00555981881916523,
+    "online_dqn_0.15_relocation_entries": 14.0
   },
   "dqn_gate": {
     "0.00": {
@@ -40,28 +53,39 @@
   },
   "selector_decisions": {
     "0.00": {
-      "score_diversified_popularity": 2.74040820225969,
+      "score_diversified_popularity": 3.0344082022596903,
       "score_topology_greedy": 2.6434614514045442,
-      "score_hybrid_dqn": 2.661732766684837,
-      "selected_policy": "topology_greedy"
+      "score_online_dqn": 2.2345639016494006,
+      "previous_policy": "bootstrap_topology_greedy",
+      "selected_policy": "online_dqn",
+      "online_dqn_relocation_entries": 3.0
     },
     "0.05": {
-      "score_diversified_popularity": 3.0801776935025713,
-      "score_topology_greedy": 3.696248407337976,
-      "selected_policy": "diversified_popularity"
+      "score_diversified_popularity": 3.37923908003716,
+      "score_topology_greedy": 3.7019554623387543,
+      "score_online_dqn": 3.220093742419032,
+      "previous_policy": "online_dqn",
+      "selected_policy": "online_dqn",
+      "online_dqn_relocation_entries": 6.0
     },
     "0.10": {
-      "score_diversified_popularity": 3.755241595064156,
-      "score_topology_greedy": 4.42661399304774,
-      "selected_policy": "diversified_popularity"
+      "score_diversified_popularity": 4.064933195197285,
+      "score_topology_greedy": 4.444749903937586,
+      "score_online_dqn": 3.760073212614932,
+      "previous_policy": "online_dqn",
+      "selected_policy": "online_dqn",
+      "online_dqn_relocation_entries": 9.0
     },
     "0.15": {
-      "score_diversified_popularity": 5.976464124593258,
-      "score_topology_greedy": 6.847313110978136,
-      "score_hybrid_dqn": 5.901027896119986,
-      "selected_policy": "hybrid_dqn"
+      "score_diversified_popularity": 6.297095437399999,
+      "score_topology_greedy": 6.878454449313186,
+      "score_online_dqn": 4.699593817377346,
+      "previous_policy": "online_dqn",
+      "selected_policy": "online_dqn",
+      "online_dqn_relocation_entries": 14.0
     }
   },
+  "online_relocation_reference": "Adaptive TACC evaluates each selected placement against the previously deployed Adaptive TACC placement; the online horizon is bootstrapped from topology-aware greedy.",
   "config": {
     "trace_path": "data/raw/dartmouth_movement.csv",
     "output_dir": "results/final",

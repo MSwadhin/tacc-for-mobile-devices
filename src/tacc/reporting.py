@@ -12,6 +12,7 @@ DISPLAY_NAMES = {
     "diversified_popularity": "Diversified Popularity",
     "topology_greedy": "Topology-Aware Greedy",
     "hybrid_dqn": "Greedy + DQN Refinement",
+    "online_dqn": "Online DQN Refinement",
     "adaptive_tacc": "Adaptive TACC Selector",
 }
 
@@ -44,7 +45,13 @@ def write_latex_assets(summary: pd.DataFrame, output_dir: Path) -> None:
     table_lines.extend(["\\bottomrule", "\\end{tabular}", "\\end{table}", ""])
     (output_dir / "result_table.tex").write_text("\n".join(table_lines), encoding="utf-8")
 
-    compact_policies = ["diversified_popularity", "topology_greedy", "hybrid_dqn", "adaptive_tacc"]
+    compact_policies = [
+        "diversified_popularity",
+        "topology_greedy",
+        "hybrid_dqn",
+        "online_dqn",
+        "adaptive_tacc",
+    ]
     compact = summary[summary["policy"].isin(compact_policies)].copy()
     compact_lines = [
         "\\begin{table}[t]",
@@ -65,7 +72,14 @@ def write_latex_assets(summary: pd.DataFrame, output_dir: Path) -> None:
     compact_lines.extend(["\\bottomrule", "\\end{tabular}", "\\end{table}", ""])
     (output_dir / "perturbation_table.tex").write_text("\n".join(compact_lines), encoding="utf-8")
 
-    policies = ["random", "local_popularity", "diversified_popularity", "topology_greedy", "adaptive_tacc"]
+    policies = [
+        "random",
+        "local_popularity",
+        "diversified_popularity",
+        "topology_greedy",
+        "online_dqn",
+        "adaptive_tacc",
+    ]
     filtered = summary[summary["policy"].isin(policies)].copy()
     min_obj = filtered["objective"].min()
     max_obj = filtered["objective"].max()
@@ -75,6 +89,7 @@ def write_latex_assets(summary: pd.DataFrame, output_dir: Path) -> None:
         "local_popularity": "blue",
         "diversified_popularity": "orange",
         "topology_greedy": "teal",
+        "online_dqn": "green",
         "adaptive_tacc": "red",
     }
     y_positions = {policy: 0.8 + idx * 0.45 for idx, policy in enumerate(policies)}
@@ -107,7 +122,7 @@ def write_latex_assets(summary: pd.DataFrame, output_dir: Path) -> None:
     lines.extend(
         [
             "\\end{tikzpicture}",
-            "\\caption{Objective value under topology perturbation. Adaptive TACC selects among diversity-aware placement, topology-aware greedy, and DQN-refined greedy using held-out perturbation samples and a high-churn volatility penalty.}",
+            "\\caption{Objective value under topology perturbation. Adaptive TACC selects among diversity-aware placement, topology-aware greedy, and online DQN refinement using held-out perturbation samples, relocation cost, and validation variability.}",
             "\\label{fig:objective_perturbation}",
             "\\end{figure}",
             "",

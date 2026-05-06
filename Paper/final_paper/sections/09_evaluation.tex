@@ -2,7 +2,7 @@
 
 \subsection{Experimental Protocol}
 
-The experiment uses seed 11, 20 AP nodes, 190 mobility edges, 48 content objects, cache capacity 5, Zipf parameter \(\alpha=0.85\), locality multiplier 2.8, and 12 evaluation samples per perturbation rate. Perturbation rates are \(p\in\{0.00,0.05,0.10,0.15\}\). The DQN refiner uses 85 episodes and 16 steps per episode when the selector gate considers DQN refinement. The evaluation is repeated over perturbation samples so that both mean objective and variability can be observed.
+The experiment uses seed 11, 20 AP nodes, 190 mobility edges, 48 content objects, cache capacity 5, Zipf parameter \(\alpha=0.85\), locality multiplier 2.8, and 12 evaluation samples per perturbation rate. Perturbation rates are \(p\in\{0.00,0.05,0.10,0.15\}\). The DQN refiner uses 85 episodes and 16 steps per online refinement window. The evaluation is repeated over perturbation samples so that both mean objective and variability can be observed. Adaptive TACC is evaluated sequentially: the selected placement at one perturbation window becomes the relocation reference for the next window.
 
 \begin{table}[t]
 \centering
@@ -20,14 +20,14 @@ Perturbation rates & 0.00, 0.05, 0.10, 0.15 \\
 Evaluation samples/rate & 12 \\
 DQN episodes & 85 \\
 DQN steps/episode & 16 \\
-Runtime & 147.4 seconds \\
+Runtime & 203.5 seconds \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \subsection{Policies Compared}
 
-The evaluation compares seven policies. Random placement measures unstructured diversity. Local popularity caches the top-\(K\) objects at each AP according to local demand. Global popularity stores the same globally popular objects at all APs. Diversified popularity shifts popular-object slices across APs to increase cooperative coverage. Topology-aware greedy optimizes the proposed objective using marginal gains. Greedy + DQN refines the greedy placement with accepted objective-improving local actions. Adaptive TACC selects among strong candidate policies using validation perturbations, policy variability, replication pressure, and computation cost.
+The evaluation compares eight policies. Random placement measures unstructured diversity. Local popularity caches the top-\(K\) objects at each AP according to local demand. Global popularity stores the same globally popular objects at all APs. Diversified popularity shifts popular-object slices across APs to increase cooperative coverage. Topology-aware greedy optimizes the proposed objective using marginal gains. Greedy + DQN refines the greedy placement as a fixed warm-start ablation. Online DQN refines the currently deployed placement at each window. Adaptive TACC selects among strong candidate policies using validation perturbations, policy variability, replication pressure, relocation cost, and computation cost.
 
 This baseline set is intentionally strong. Diversified popularity is simple but competitive because it increases the number of distinct objects available in the cooperative graph. Including it prevents the study from overstating the value of topology-aware optimization by comparing only against weak popularity baselines.
 
@@ -37,7 +37,7 @@ The primary metric is the total objective. Lower objective indicates a better ba
 
 The hit-ratio decomposition is important. Local hit ratio is the probability mass served at the requesting node. Cooperative hit ratio is the probability mass served by another active node in the perturbed graph. Origin miss ratio is the remaining probability mass served by the origin. A policy can have a reasonable total hit ratio but still be operationally poor if most hits require long cooperative paths or if it creates excessive replication. This is why the objective and cost components are reported alongside hit ratios.
 
-Replication, redundancy, and relocation are interpreted as operational costs rather than separate success metrics. Replication is the average active replica count per active node and contributes through \(\lambda C_{\text{rep}}\). Redundancy is the edge-weighted duplicate-content overlap among active APs and contributes through \(\beta C_{\text{red}}\). Relocation is the average number of changed cache entries relative to a reference placement and contributes through \(\mu C_{\text{rel}}\). Static policies have zero reported relocation because they are evaluated against their own fixed placement; Greedy + DQN has nonzero relocation because its reference is the topology-aware greedy placement it refines.
+Replication, redundancy, and relocation are interpreted as operational costs rather than separate success metrics. Replication is the average active replica count per active node and contributes through \(\lambda C_{\text{rep}}\). Redundancy is the edge-weighted duplicate-content overlap among active APs and contributes through \(\beta C_{\text{red}}\). Relocation is the average number of changed cache entries relative to the previous online placement and contributes through \(\mu C_{\text{rel}}\). Static baseline rows have zero relocation after their initial deployment because they represent a continuously deployed fixed policy. Adaptive TACC and Online DQN report nonzero relocation when the online controller actually rewrites cache entries between windows.
 
 \begin{table}[t]
 \centering
@@ -47,8 +47,9 @@ Replication, redundancy, and relocation are interpreted as operational costs rat
 \toprule
 Policy & Objective & Access Cost & Hit Ratio & Relocation \\
 \midrule
-Greedy + DQN Refinement & 2.632 & 2.544 & 0.987 & 0.100 \\
-Adaptive TACC Selector & 2.633 & 2.554 & 0.987 & 0.000 \\
+Adaptive TACC Selector & 2.209 & 2.120 & 1.000 & 0.150 \\
+Online DQN Refinement & 2.209 & 2.120 & 1.000 & 0.150 \\
+Greedy + DQN Refinement & 2.467 & 2.325 & 0.993 & 0.450 \\
 Topology-Aware Greedy & 2.633 & 2.554 & 0.987 & 0.000 \\
 Diversified Popularity & 2.739 & 2.521 & 0.987 & 0.000 \\
 Random & 6.723 & 6.115 & 0.877 & 0.000 \\
@@ -68,8 +69,9 @@ Policy & $p=0.00$ & $p=0.05$ & $p=0.10$ & $p=0.15$ \\
 \midrule
 Diversified Popularity & 2.739 & 3.472 & 3.249 & 5.252 \\
 Topology-Aware Greedy & 2.633 & 4.013 & 4.336 & 5.172 \\
-Greedy + DQN Refinement & 2.632 & 3.905 & 4.237 & 4.964 \\
-Adaptive TACC Selector & 2.633 & 3.472 & 3.249 & 4.964 \\
+Greedy + DQN Refinement & 2.467 & 3.629 & 3.963 & 4.610 \\
+Online DQN Refinement & 2.209 & 3.398 & 3.284 & 3.555 \\
+Adaptive TACC Selector & 2.209 & 3.398 & 3.284 & 3.555 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -81,7 +83,7 @@ Adaptive TACC Selector & 2.633 & 3.472 & 3.249 & 4.964 \\
 
 \subsection{Nominal-Graph Results}
 
-At \(p=0.00\), Greedy + DQN achieves objective 2.632, compared with 2.633 for topology-aware greedy and 2.739 for diversified popularity. The DQN gain over greedy is measurable but very small. Adaptive TACC therefore selects topology-aware greedy because the marginal DQN improvement does not justify the added computation and relocation cost in the cost-aware selector. This is the intended amortized-complexity behavior: an expensive policy is not invoked merely because it is slightly better on cache objective.
+At \(p=0.00\), Online DQN achieves objective 2.209, compared with 2.467 for fixed Greedy + DQN, 2.633 for topology-aware greedy, and 2.739 for diversified popularity. The online result is better because DQN is no longer treated as a fixed placement trained once from greedy. It starts from the deployed topology-aware greedy cache and makes a small number of accepted changes, producing relocation 0.150 per active node while improving access cost to 2.120. Adaptive TACC therefore selects Online DQN even in the stable window because the gain is large enough to justify the measured cache rewrite.
 
 The popularity baselines show the cost of ignoring cooperation. Local popularity has objective 16.728 because it does not use neighboring caches effectively. Global popularity has objective 24.925 because it duplicates the same content across the network and leaves little cooperative diversity. Random placement performs better than local and global popularity in this dense graph because random diversity sometimes creates reachable content coverage, but it remains far weaker than topology-aware and adaptive policies.
 
@@ -89,27 +91,27 @@ The popularity baselines show the cost of ignoring cooperation. Local popularity
 
 Perturbation changes the relative value of the policies. At \(p=0.05\) and \(p=0.10\), diversified popularity has the lowest objective among the static candidates. This result is important because diversified popularity is not explicitly graph-optimized. Its advantage comes from broader catalog coverage: when moderate perturbation removes some nodes and edges, a wider content footprint can preserve cooperative hits.
 
-At \(p=0.15\), Greedy + DQN becomes strongest among the candidate policies, with objective 4.964 compared with 5.172 for topology-aware greedy and 5.252 for diversified popularity. The selector gate also identifies this regime as unstable: the best cheap candidate has high validation variability, so DQN refinement receives an instability credit that justifies its computation cost. Adaptive TACC therefore selects topology-aware greedy at \(p=0.00\), diversified placement at \(p=0.05\) and \(p=0.10\), and DQN-refined greedy at \(p=0.15\).
+At \(p=0.05\), \(p=0.10\), and \(p=0.15\), Online DQN remains the strongest online policy, with objectives 3.398, 3.284, and 3.555. The high-churn result is especially important: fixed Greedy + DQN has objective 4.610 at \(p=0.15\), while Online DQN reaches 3.555 because it refines the placement already deployed by the controller instead of asking the network to switch to a separately trained fixed placement. Adaptive TACC selects Online DQN at every tested window because validation shows that its access and robustness gains outweigh both relocation and computation cost.
 
 \begin{table}[t]
 \centering
-\caption{Best-performing strategy by perturbation regime.}
+\caption{Best-performing online strategy by perturbation regime.}
 \label{tab:strategy_regimes}
 \footnotesize
 \setlength{\tabcolsep}{2pt}
 \begin{tabular}{p{0.10\linewidth}p{0.18\linewidth}p{0.18\linewidth}p{0.32\linewidth}}
 \toprule
-Rate & Best objective policy & Adaptive TACC decision & Interpretation \\
+Rate & Best transition-aware candidate & Adaptive TACC decision & Interpretation \\
 \midrule
-\(0.00\) & Greedy + DQN & Topology-Aware Greedy & DQN improves objective only from 2.633 to 2.632, so the selector avoids extra optimization cost. \\
-\(0.05\) & Diversified Popularity & Diversified Popularity & Moderate perturbation rewards broader catalog coverage. \\
-\(0.10\) & Diversified Popularity & Diversified Popularity & Diversity remains stronger than precise graph optimization when some holders and paths disappear. \\
-\(0.15\) & Greedy + DQN & Greedy + DQN & High-churn validation instability makes local learned refinement worthwhile. \\
+\(0.00\) & Online DQN & Online DQN & Three cache-entry changes improve the deployed greedy cache enough to justify relocation. \\
+\(0.05\) & Online DQN & Online DQN & Refinement continues from the deployed DQN state and preserves stronger access quality than switching to diversified placement. \\
+\(0.10\) & Online DQN & Online DQN & Online DQN is slightly higher than diversified on raw objective but wins the selector because validation rewards lower variability and continuity. \\
+\(0.15\) & Online DQN & Online DQN & Transition-aware refinement is much stronger than fixed Greedy+DQN or diversified placement under churn. \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The proposed strong methods outperform the simple baselines in every tested perturbation regime. Random, local popularity, and global popularity never achieve the lowest objective. Topology-aware greedy, Greedy + DQN, and diversified popularity each outperform those simple baselines because they exploit at least one cooperative property: graph-aware retrieval, learned local refinement, or catalog diversity. The adaptive result should therefore be read after the individual policy results. Adaptive TACC is not hiding weak base methods; it selects among strong candidates whose relative ranking changes with perturbation.
+The proposed strong methods outperform the simple baselines in every tested perturbation regime. Random, local popularity, and global popularity never achieve the lowest objective. Topology-aware greedy, fixed Greedy + DQN, Online DQN, and diversified popularity each outperform those simple baselines because they exploit at least one cooperative property: graph-aware retrieval, learned local refinement, or catalog diversity. The strongest conclusion is that DQN must be transition-aware. Fixed Greedy + DQN is useful, but Online DQN is the method that matches the sequential cache-update goal.
 
 \begin{table}[t]
 \centering
@@ -119,10 +121,10 @@ The proposed strong methods outperform the simple baselines in every tested pert
 \toprule
 Perturbation rate & Selected policy \\
 \midrule
-0.00 & Topology-Aware Greedy \\
-0.05 & Diversified Popularity \\
-0.10 & Diversified Popularity \\
-0.15 & Greedy + DQN Refinement \\
+0.00 & Online DQN Refinement \\
+0.05 & Online DQN Refinement \\
+0.10 & Online DQN Refinement \\
+0.15 & Online DQN Refinement \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -133,10 +135,10 @@ Perturbation rate & Selected policy \\
 
 The cost decomposition clarifies why objective values do not always follow hit ratio alone. A placement with high hit ratio may still have higher objective if it creates large replication or redundancy cost. Conversely, a placement with slightly lower hit ratio may be preferable if it serves demand through shorter paths or maintains lower churn. This is why diversified popularity is competitive under moderate perturbation but not uniformly dominant: it improves coverage but can carry replication and redundancy costs that become less attractive under high churn.
 
-The DQN result is also interpretable through cost components. Since the refiner starts from greedy, it does not need to discover basic popularity or topology structure. It only needs to find local changes that reduce access cost or redundancy enough to justify relocation. The accepted-action rule ensures that a proposed change cannot reduce measured quality during inference.
+The DQN result is also interpretable through cost components. Since the online refiner starts from the deployed cache state, it does not need to discover basic popularity or topology structure. It only needs to find local changes that reduce access cost or redundancy enough to justify relocation. The accepted-action rule ensures that a proposed change cannot reduce measured quality during inference.
 
-The relocation column should not be confused with replication. Replication is nonzero for cache-placing policies because each active cache stores objects. Relocation is zero for most standalone policies because no transition from a previous placement is being charged in those rows. The nonzero DQN relocation reports the average cache entries changed relative to topology-aware greedy. This distinction matters because replication affects storage and update pressure, redundancy affects whether replicas are useful or wasteful given AP relatedness, and relocation affects how disruptive adaptation would be in operation.
+The relocation column should not be confused with replication. Replication is nonzero for cache-placing policies because each active cache stores objects. Relocation is zero for fixed policy rows after deployment because those rows represent continuing the same policy across windows. Adaptive TACC reports nonzero relocation because the online controller actually changes cache entries: 0.150 at \(p=0.00\), 0.290 at \(p=0.05\), 0.437 at \(p=0.10\), and 0.636 at \(p=0.15\). This distinction matters because replication affects storage and update pressure, redundancy affects whether replicas are useful or wasteful given AP relatedness, and relocation affects how disruptive adaptation would be in operation.
 
 \subsection{Research Question Outcomes}
 
-RQ1 is supported by the constructed AP handoff graph, which contains 20 active AP nodes and 190 weighted mobility edges. RQ2 is supported by the large gap between topology-aware/adaptive policies and local or global popularity. At \(p=0.00\), Adaptive TACC has objective 2.633 compared with 16.728 for local popularity and 24.925 for global popularity. RQ3 is supported by the improvement from topology-aware greedy to Greedy + DQN in the high-churn regime. RQ4 is supported by the policy switch across perturbation rates: one static policy is not sufficient across all tested regimes, and the selector avoids DQN when its marginal gain is too small.
+RQ1 is supported by the constructed AP handoff graph, which contains 20 active AP nodes and 190 weighted mobility edges. RQ2 is supported by the large gap between topology-aware/adaptive policies and local or global popularity. At \(p=0.00\), Adaptive TACC has objective 2.209 compared with 16.728 for local popularity and 24.925 for global popularity. RQ3 is supported by the improvement from fixed Greedy + DQN to Online DQN in every perturbation regime, especially at \(p=0.15\), where objective improves from 4.610 to 3.555. RQ4 is supported by the sequential relocation measurements: adaptation is not free, but transition-aware DQN produces enough measured improvement to justify the cache updates in the tested windows.
