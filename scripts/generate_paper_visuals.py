@@ -27,7 +27,6 @@ DISPLAY = {
     "topology_greedy": "Topo-Greedy",
     "hybrid_dqn": "Greedy+DQN",
     "online_dqn": "Online DQN",
-    "adaptive_tacc": "Validation Gate",
 }
 
 COLORS = {
@@ -39,7 +38,6 @@ COLORS = {
     "topology_greedy": "teal",
     "hybrid_dqn": "purple",
     "online_dqn": "green",
-    "adaptive_tacc": "red",
 }
 
 
@@ -57,7 +55,7 @@ def load_summary() -> pd.DataFrame:
 
 
 def objective_chart(summary: pd.DataFrame) -> None:
-    policies = ["diversified_popularity", "topology_greedy", "hybrid_dqn", "online_dqn", "adaptive_tacc"]
+    policies = ["keep_current", "diversified_popularity", "topology_greedy", "hybrid_dqn", "online_dqn"]
     rates = sorted(summary["perturbation_rate"].unique())
     values = summary[summary["policy"].isin(policies)]["objective"]
     ymin = float(values.min()) * 0.92
@@ -91,7 +89,7 @@ def objective_chart(summary: pd.DataFrame) -> None:
             coords.append((x, y))
         coord_text = " -- ".join(f"({x:.2f},{y:.2f})" for x, y in coords)
         color = COLORS[policy]
-        style = "very thick" if policy == "adaptive_tacc" else "thick"
+        style = "very thick" if policy == "online_dqn" else "thick"
         lines.append(f"\\draw[{color}, {style}] {coord_text};")
         for x, y in coords:
             lines.append(f"\\fill[{color}] ({x:.2f},{y:.2f}) circle (1.8pt);")
@@ -100,7 +98,7 @@ def objective_chart(summary: pd.DataFrame) -> None:
         lines.append(f"\\node[right] at (8.45,{ly:.2f}) {{{DISPLAY[policy]}}};")
     lines += [
         "\\end{tikzpicture}",
-        "\\caption{Objective trends for the strongest placement policies across perturbation rates. Online DQN and the validation-gated deployment coincide in this run because the gate selects transition-aware refinement in every tested window.}",
+        "\\caption{Objective trends for the strongest placement policies across perturbation rates. Online DQN is the transition-aware online controller; Keep Current is the no-update baseline that carries the previous online cache forward.}",
         "\\label{fig:generated_objective_trends}",
         "\\end{figure}",
     ]
@@ -108,7 +106,7 @@ def objective_chart(summary: pd.DataFrame) -> None:
 
 
 def hit_breakdown(summary: pd.DataFrame) -> None:
-    rows = summary[summary["policy"] == "adaptive_tacc"].sort_values("perturbation_rate")
+    rows = summary[summary["policy"] == "online_dqn"].sort_values("perturbation_rate")
     lines = [
         "\\begin{figure}[t]",
         "\\centering",
@@ -137,106 +135,51 @@ def hit_breakdown(summary: pd.DataFrame) -> None:
         "\\fill[blue!45] (7.25,2.35) rectangle (7.55,2.60); \\node[right] at (7.60,2.48) {Cooperative hit};",
         "\\fill[red!45] (7.25,1.95) rectangle (7.55,2.20); \\node[right] at (7.60,2.08) {Origin miss};",
         "\\end{tikzpicture}",
-        "\\caption{Hit-ratio decomposition for the validation-gated deployment. Most served demand is cooperative rather than purely local, showing why graph-aware cache diversity matters.}",
+        "\\caption{Hit-ratio decomposition for Online DQN. Most served demand is cooperative rather than purely local, showing why graph-aware cache diversity matters.}",
         "\\label{fig:generated_hit_breakdown}",
         "\\end{figure}",
     ]
     write("fig_hit_breakdown.tex", lines)
 
 
-def selector_pie(summary: pd.DataFrame) -> None:
-    rows = summary[summary["policy"] == "adaptive_tacc"].sort_values("perturbation_rate")
-    counts = rows["selected_policy"].value_counts().to_dict()
-    total = sum(counts.values())
-    start = 0.0
-    lines = [
-        "\\begin{figure}[t]",
-        "\\centering",
-        "\\begin{tikzpicture}[x=1cm,y=1cm]",
-    ]
-    label_map = {
-        "keep_current": "Keep Current",
-        "hybrid_dqn": "Greedy+DQN",
-        "online_dqn": "Online DQN",
-        "diversified_popularity": "Diversified",
-        "topology_greedy": "Topo-Greedy",
-    }
-    colors = {
-        "keep_current": "black",
-        "hybrid_dqn": "purple",
-        "online_dqn": "green",
-        "diversified_popularity": "orange",
-        "topology_greedy": "teal",
-    }
-    for policy, count in counts.items():
-        frac = count / total
-        end = start + frac * 360.0
-        mid = (start + end) / 2.0
-        x = 1.15 * cos(mid * pi / 180.0)
-        y = 1.15 * sin(mid * pi / 180.0)
-        large = "1" if end - start > 180 else "0"
-        # TikZ arc handles angles directly; the large flag is not needed but keeping arcs explicit is clearer.
-        lines.append(
-            f"\\fill[{colors[policy]}!65] (0,0) -- ({start:.2f}:1.45) arc ({start:.2f}:{end:.2f}:1.45) -- cycle;"
-        )
-        lines.append(f"\\node at ({x:.2f},{y:.2f}) {{{count}/{total}}};")
-        start = end
-    lines += [
-        "\\draw (0,0) circle (1.45);",
-    ]
-    for idx, policy in enumerate(sorted(counts, key=lambda name: label_map[name])):
-        y = 0.75 - idx * 0.45
-        lines.append(
-            f"\\fill[{colors[policy]}!65] (2.25,{y-0.15:.2f}) rectangle (2.55,{y+0.15:.2f}); "
-            f"\\node[right] at (2.60,{y:.2f}) {{{label_map[policy]}}};"
-        )
-    lines += [
-        "\\end{tikzpicture}",
-        "\\caption{Validation-gate policy-selection frequency across the tested perturbation windows under sequential online relocation. Online DQN is selected in this run, so the gate is interpreted as a safeguard rather than as an independent source of improvement.}",
-        "\\label{fig:generated_selector_pie}",
-        "\\end{figure}",
-    ]
-    write("fig_selector_pie.tex", lines)
-
-
 def cost_components(summary: pd.DataFrame) -> None:
-    rate = 0.0
-    policies = ["diversified_popularity", "topology_greedy", "hybrid_dqn", "online_dqn", "adaptive_tacc"]
-    rows = summary[(summary["perturbation_rate"] == rate) & (summary["policy"].isin(policies))].copy()
+    rows = summary[summary["policy"] == "online_dqn"].sort_values("perturbation_rate").copy()
     rows["rep_penalty"] = 0.02 * rows["replication_cost"]
     rows["red_penalty"] = 18.0 * rows["redundancy_cost"]
     rows["rel_penalty"] = 0.04 * rows["relocation_cost"]
-    max_total = float(rows["objective"].max()) * 1.08
-    scale = 2.7 / max_total
+    rows["overhead"] = rows["rep_penalty"] + rows["red_penalty"] + rows["rel_penalty"]
+    max_total = float(rows["overhead"].max()) * 1.18
+    scale = 2.55 / max(max_total, 1e-6)
     lines = [
         "\\begin{figure}[t]",
         "\\centering",
         "\\begin{tikzpicture}[x=1cm,y=1cm]",
-        "\\draw[->] (0.55,0.45) -- (8.70,0.45) node[right] {Policy};",
-        "\\draw[->] (0.55,0.45) -- (0.55,3.35) node[above] {Objective components};",
+        "\\draw[->] (0.55,0.45) -- (8.65,0.45) node[right] {Perturbation rate};",
+        "\\draw[->] (0.55,0.45) -- (0.55,3.35) node[above] {Weighted overhead};",
+        "\\node[left] at (0.50,0.45) {0};",
+        f"\\node[left] at (0.50,3.00) {{{max_total:.2f}}};",
     ]
     components = [
-        ("access_cost", "blue!45", "Access"),
         ("rep_penalty", "teal!55", "Replication"),
         ("red_penalty", "orange!60", "Redundancy"),
         ("rel_penalty", "red!45", "Relocation"),
     ]
     for ridx, (_, row) in enumerate(rows.iterrows()):
-        x = 0.95 + ridx * 1.15
+        x = 1.00 + ridx * 1.05
         y = 0.45
         for col, color, _ in components:
             h = float(row[col]) * scale
             lines.append(f"\\fill[{color}] ({x:.2f},{y:.2f}) rectangle ({x+0.60:.2f},{y+h:.2f});")
             y += h
         lines.append(f"\\draw ({x:.2f},0.45) rectangle ({x+0.60:.2f},{y:.2f});")
-        lines.append(f"\\node[rotate=35, anchor=east] at ({x+0.55:.2f},0.28) {{{DISPLAY[row['policy']]}}};")
+        lines.append(f"\\node[below] at ({x+0.30:.2f},0.45) {{{row['perturbation_rate']:.2f}}};")
     for lidx, (_, color, label) in enumerate(components):
         y = 3.05 - lidx * 0.30
-        lines.append(f"\\fill[{color}] (6.65,{y:.2f}) rectangle (6.95,{y+0.18:.2f});")
-        lines.append(f"\\node[right] at (7.00,{y+0.09:.2f}) {{{label}}};")
+        lines.append(f"\\fill[{color}] (7.15,{y:.2f}) rectangle (7.45,{y+0.18:.2f});")
+        lines.append(f"\\node[right] at (7.50,{y+0.09:.2f}) {{{label}}};")
     lines += [
         "\\end{tikzpicture}",
-        "\\caption{Objective component breakdown at nominal perturbation. Access cost dominates the objective, while redundancy and relocation distinguish the strongest policies.}",
+        "\\caption{Weighted non-access overhead for Online DQN across perturbation windows. Replication, redundancy, and relocation are intentionally small relative to access cost under the configured objective weights, but they grow with perturbation and make cache churn visible.}",
         "\\label{fig:generated_cost_components}",
         "\\end{figure}",
     ]
@@ -244,17 +187,25 @@ def cost_components(summary: pd.DataFrame) -> None:
 
 
 def metrics_table(summary: pd.DataFrame) -> None:
-    policies = ["diversified_popularity", "topology_greedy", "hybrid_dqn", "online_dqn", "adaptive_tacc"]
+    policies = ["keep_current", "diversified_popularity", "topology_greedy", "hybrid_dqn", "online_dqn"]
     rates = sorted(summary["perturbation_rate"].unique())
     columns = " & ".join(f"$p={rate:.2f}$" for rate in rates)
     alignment = "ll" + ("r" * len(rates))
+    metrics = [
+        ("objective", "Obj."),
+        ("access_cost", "Access"),
+        ("hit_ratio", "Hit"),
+        ("replication_cost", "Repl."),
+        ("redundancy_cost", "Redun."),
+        ("relocation_cost", "Reloc."),
+    ]
     lines = [
         "\\begin{table}[t]",
         "\\centering",
-        "\\caption{Objective and hit-ratio summary for the strongest policies.}",
+        "\\caption{Full metric summary for the strongest non-duplicate policies across perturbation rates. Replication, redundancy, and relocation are raw normalized cost components before objective weights are applied.}",
         "\\label{tab:generated_compact_metrics}",
         "\\scriptsize",
-        "\\setlength{\\tabcolsep}{2pt}",
+        "\\setlength{\\tabcolsep}{1.6pt}",
         f"\\begin{{tabular}}{{{alignment}}}",
         "\\toprule",
         f"Policy & Metric & {columns} \\\\",
@@ -262,10 +213,11 @@ def metrics_table(summary: pd.DataFrame) -> None:
     ]
     for policy in policies:
         rows = summary[summary["policy"] == policy].set_index("perturbation_rate")
-        obj = " & ".join(fmt(rows.loc[r, "objective"]) for r in rates)
-        hit = " & ".join(fmt(rows.loc[r, "hit_ratio"]) for r in rates)
-        lines.append(f"{DISPLAY[policy]} & Objective & {obj} \\\\")
-        lines.append(f" & Hit ratio & {hit} \\\\")
+        for midx, (column, label) in enumerate(metrics):
+            values = " & ".join(fmt(rows.loc[r, column]) for r in rates)
+            policy_label = DISPLAY[policy] if midx == 0 else ""
+            lines.append(f"{policy_label} & {label} & {values} \\\\")
+        lines.append("\\addlinespace[1pt]")
     lines += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
     write("table_compact_metrics.tex", lines)
 
@@ -312,7 +264,6 @@ def main() -> None:
     summary = load_summary()
     objective_chart(summary)
     hit_breakdown(summary)
-    selector_pie(summary)
     cost_components(summary)
     metrics_table(summary)
     mobility_graph()

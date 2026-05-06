@@ -1,20 +1,21 @@
 \begin{table}[t]
 \centering
-\caption{Measured performance at the lowest perturbation setting. Lower objective and access cost are better; higher hit ratio is better.}
+\caption{Measured performance at the lowest perturbation setting. Lower objective, access cost, replication, redundancy, and relocation are better; higher hit ratio is better.}
 \label{tab:measured_results}
-\begin{tabular}{lrrrr}
+\scriptsize
+\setlength{\tabcolsep}{2pt}
+\begin{tabular}{lrrrrrr}
 \toprule
-Policy & Objective & Access Cost & Hit Ratio & Relocation \\
+Policy & Obj. & Access & Hit & Repl. & Redun. & Reloc. \\
 \midrule
-Online DQN Refinement & 2.209$\pm$0.000 & 2.120 & 1.000 & 0.150 \\
-Validation Gate & 2.209$\pm$0.000 & 2.120 & 1.000 & 0.150 \\
-Keep Current & 2.633$\pm$0.000 & 2.554 & 0.987 & 0.000 \\
-Topology-Aware Greedy & 2.633$\pm$0.000 & 2.554 & 0.987 & 0.000 \\
-Greedy + DQN Refinement & 2.711$\pm$0.000 & 2.525 & 0.987 & 0.800 \\
-Diversified Popularity & 2.739$\pm$0.000 & 2.521 & 0.987 & 0.000 \\
-Random & 6.723$\pm$0.000 & 6.115 & 0.877 & 0.000 \\
-Local Popularity & 16.728$\pm$0.000 & 13.533 & 0.638 & 0.000 \\
-Global Popularity & 24.925$\pm$0.000 & 20.325 & 0.432 & 0.000 \\
+Online DQN Refinement & 2.209$\pm$0.000 & 2.120 & 1.000 & 2.900 & 0.001 & 0.150 \\
+Keep Current & 2.633$\pm$0.000 & 2.554 & 0.987 & 2.750 & 0.001 & 0.000 \\
+Topology-Aware Greedy & 2.633$\pm$0.000 & 2.554 & 0.987 & 2.750 & 0.001 & 0.000 \\
+Greedy + DQN Refinement & 2.711$\pm$0.000 & 2.525 & 0.987 & 3.450 & 0.005 & 0.800 \\
+Diversified Popularity & 2.739$\pm$0.000 & 2.521 & 0.987 & 5.000 & 0.007 & 0.000 \\
+Random & 6.723$\pm$0.000 & 6.115 & 0.877 & 5.000 & 0.028 & 0.000 \\
+Local Popularity & 16.728$\pm$0.000 & 13.533 & 0.638 & 5.000 & 0.172 & 0.000 \\
+Global Popularity & 24.925$\pm$0.000 & 20.325 & 0.432 & 5.000 & 0.250 & 0.000 \\
 \bottomrule
 \end{tabular}
 \end{table}

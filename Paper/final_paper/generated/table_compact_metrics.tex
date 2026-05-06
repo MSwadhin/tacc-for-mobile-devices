@@ -1,23 +1,48 @@
 \begin{table}[t]
 \centering
-\caption{Objective and hit-ratio summary for the strongest policies.}
+\caption{Full metric summary for the strongest non-duplicate policies across perturbation rates. Replication, redundancy, and relocation are raw normalized cost components before objective weights are applied.}
 \label{tab:generated_compact_metrics}
 \scriptsize
-\setlength{\tabcolsep}{2pt}
+\setlength{\tabcolsep}{1.6pt}
 \begin{tabular}{llrrrrrr}
 \toprule
 Policy & Metric & $p=0.00$ & $p=0.05$ & $p=0.10$ & $p=0.15$ & $p=0.20$ & $p=0.25$ \\
 \midrule
-Diversified & Objective & 2.739 & 3.472 & 3.249 & 5.252 & 3.932 & 4.649 \\
- & Hit ratio & 0.987 & 0.965 & 0.972 & 0.911 & 0.951 & 0.929 \\
-Topo-Greedy & Objective & 2.633 & 4.013 & 4.336 & 5.172 & 5.892 & 7.467 \\
- & Hit ratio & 0.987 & 0.945 & 0.935 & 0.910 & 0.888 & 0.840 \\
-Greedy+DQN & Objective & 2.711 & 3.512 & 3.911 & 4.353 & 4.973 & 6.280 \\
- & Hit ratio & 0.987 & 0.962 & 0.950 & 0.936 & 0.917 & 0.877 \\
-Online DQN & Objective & 2.209 & 3.398 & 3.284 & 3.555 & 3.307 & 4.415 \\
- & Hit ratio & 1.000 & 0.965 & 0.968 & 0.961 & 0.970 & 0.936 \\
-Validation Gate & Objective & 2.209 & 3.398 & 3.284 & 3.555 & 3.307 & 4.415 \\
- & Hit ratio & 1.000 & 0.965 & 0.968 & 0.961 & 0.970 & 0.936 \\
+Keep Current & Obj. & 2.633 & 3.497 & 3.629 & 3.956 & 3.439 & 4.342 \\
+ & Access & 2.554 & 3.416 & 3.513 & 3.833 & 3.255 & 4.142 \\
+ & Hit & 0.987 & 0.961 & 0.958 & 0.947 & 0.964 & 0.937 \\
+ & Repl. & 2.750 & 2.900 & 3.157 & 3.607 & 4.285 & 4.518 \\
+ & Redun. & 0.001 & 0.001 & 0.003 & 0.003 & 0.005 & 0.006 \\
+ & Reloc. & 0.000 & 0.000 & 0.000 & 0.000 & 0.000 & 0.000 \\
+\addlinespace[1pt]
+Diversified & Obj. & 2.739 & 3.472 & 3.249 & 5.252 & 3.932 & 4.649 \\
+ & Access & 2.521 & 3.273 & 3.057 & 5.052 & 3.738 & 4.473 \\
+ & Hit & 0.987 & 0.965 & 0.972 & 0.911 & 0.951 & 0.929 \\
+ & Repl. & 5.000 & 5.000 & 5.000 & 5.000 & 5.000 & 5.000 \\
+ & Redun. & 0.007 & 0.006 & 0.005 & 0.006 & 0.005 & 0.004 \\
+ & Reloc. & 0.000 & 0.000 & 0.000 & 0.000 & 0.000 & 0.000 \\
+\addlinespace[1pt]
+Topo-Greedy & Obj. & 2.633 & 4.013 & 4.336 & 5.172 & 5.892 & 7.467 \\
+ & Access & 2.554 & 3.936 & 4.263 & 5.099 & 5.818 & 7.396 \\
+ & Hit & 0.987 & 0.945 & 0.935 & 0.910 & 0.888 & 0.840 \\
+ & Repl. & 2.750 & 2.745 & 2.697 & 2.788 & 2.719 & 2.734 \\
+ & Redun. & 0.001 & 0.001 & 0.001 & 0.001 & 0.001 & 0.001 \\
+ & Reloc. & 0.000 & 0.000 & 0.000 & 0.000 & 0.000 & 0.000 \\
+\addlinespace[1pt]
+Greedy+DQN & Obj. & 2.711 & 3.512 & 3.911 & 4.353 & 4.973 & 6.280 \\
+ & Access & 2.525 & 3.369 & 3.768 & 4.224 & 4.841 & 6.155 \\
+ & Hit & 0.987 & 0.962 & 0.950 & 0.936 & 0.917 & 0.877 \\
+ & Repl. & 3.450 & 3.450 & 3.418 & 3.446 & 3.453 & 3.473 \\
+ & Redun. & 0.005 & 0.004 & 0.004 & 0.003 & 0.004 & 0.003 \\
+ & Reloc. & 0.800 & 0.000 & 0.000 & 0.000 & 0.000 & 0.000 \\
+\addlinespace[1pt]
+Online DQN & Obj. & 2.209 & 3.398 & 3.284 & 3.555 & 3.307 & 4.415 \\
+ & Access & 2.120 & 3.268 & 3.143 & 3.343 & 3.039 & 4.125 \\
+ & Hit & 1.000 & 0.965 & 0.968 & 0.961 & 0.970 & 0.936 \\
+ & Repl. & 2.900 & 3.190 & 3.492 & 4.242 & 4.602 & 4.783 \\
+ & Redun. & 0.001 & 0.003 & 0.003 & 0.006 & 0.007 & 0.009 \\
+ & Reloc. & 0.150 & 0.290 & 0.437 & 0.636 & 1.113 & 1.022 \\
+\addlinespace[1pt]
 \bottomrule
 \end{tabular}
 \end{table}

@@ -6,7 +6,7 @@ The second limitation is synthetic content demand. Zipf popularity and spatial l
 
 The third limitation is scale. The final experiment uses 20 nodes and 48 objects. Larger graphs would require faster candidate evaluation, batched shortest-path computation, and possibly graph neural encoders. The current method favors clarity and reproducibility over large-scale optimization.
 
-The fourth limitation is validation-gate dependence on held-out perturbation samples. The gate assumes that validation samples resemble the test regime. If topology changes in a qualitatively different way, it may choose a suboptimal policy. The \(p=0.25\) window illustrates this risk because keep-current is slightly better on observed mean objective even though the validation score selects Online DQN. This should be addressed with online monitoring, confidence intervals, and periodic retraining.
+The fourth limitation is online acceptance under high perturbation. The \(p=0.25\) window illustrates this risk because Keep Current is slightly better on observed mean objective than Online DQN, even though Online DQN remains much stronger than fixed Greedy+DQN and topology-aware greedy. This should be addressed with online monitoring, confidence intervals, and stricter accepted-action thresholds.
 
 The fifth limitation is perturbation range. The experiments evaluate \(p\leq 0.25\), where the graph remains degraded but cooperative caching is still meaningful in the sampled runs. Higher perturbation rates should be studied as a separate failure-mode setting with topology re-estimation, fallback placement, and recovery policies.
 

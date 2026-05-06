@@ -14,7 +14,6 @@ DISPLAY_NAMES = {
     "topology_greedy": "Topology-Aware Greedy",
     "hybrid_dqn": "Greedy + DQN Refinement",
     "online_dqn": "Online DQN Refinement",
-    "adaptive_tacc": "Validation Gate",
 }
 
 
@@ -27,11 +26,13 @@ def write_latex_assets(summary: pd.DataFrame, output_dir: Path) -> None:
     table_lines = [
         "\\begin{table}[t]",
         "\\centering",
-        "\\caption{Measured performance at the lowest perturbation setting. Lower objective and access cost are better; higher hit ratio is better.}",
+        "\\caption{Measured performance at the lowest perturbation setting. Lower objective, access cost, replication, redundancy, and relocation are better; higher hit ratio is better.}",
         "\\label{tab:measured_results}",
-        "\\begin{tabular}{lrrrr}",
+        "\\scriptsize",
+        "\\setlength{\\tabcolsep}{2pt}",
+        "\\begin{tabular}{lrrrrrr}",
         "\\toprule",
-        "Policy & Objective & Access Cost & Hit Ratio & Relocation \\\\",
+        "Policy & Obj. & Access & Hit & Repl. & Redun. & Reloc. \\\\",
         "\\midrule",
     ]
     for _, row in table_df.iterrows():
@@ -41,12 +42,13 @@ def write_latex_assets(summary: pd.DataFrame, output_dir: Path) -> None:
             objective = f"{row['objective']:.3f}$\\pm${row['objective_std']:.3f}"
         table_lines.append(
             f"{name} & {objective} & {row['access_cost']:.3f} & "
-            f"{row['hit_ratio']:.3f} & {row['relocation_cost']:.3f} \\\\"
+            f"{row['hit_ratio']:.3f} & {row['replication_cost']:.3f} & "
+            f"{row['redundancy_cost']:.3f} & {row['relocation_cost']:.3f} \\\\"
         )
     table_lines.extend(["\\bottomrule", "\\end{tabular}", "\\end{table}", ""])
     (output_dir / "result_table.tex").write_text("\n".join(table_lines), encoding="utf-8")
 
-    compact_policies = ["diversified_popularity", "topology_greedy", "hybrid_dqn", "online_dqn", "adaptive_tacc"]
+    compact_policies = ["keep_current", "diversified_popularity", "topology_greedy", "hybrid_dqn", "online_dqn"]
     compact = summary[summary["policy"].isin(compact_policies)].copy()
     rates = sorted(compact["perturbation_rate"].unique())
     columns = " & ".join(f"$p={rate:.2f}$" for rate in rates)
@@ -76,7 +78,6 @@ def write_latex_assets(summary: pd.DataFrame, output_dir: Path) -> None:
         "diversified_popularity",
         "topology_greedy",
         "online_dqn",
-        "adaptive_tacc",
     ]
     filtered = summary[summary["policy"].isin(policies)].copy()
     min_obj = filtered["objective"].min()
@@ -88,7 +89,6 @@ def write_latex_assets(summary: pd.DataFrame, output_dir: Path) -> None:
         "diversified_popularity": "orange",
         "topology_greedy": "teal",
         "online_dqn": "green",
-        "adaptive_tacc": "red",
     }
     y_positions = {policy: 0.8 + idx * 0.45 for idx, policy in enumerate(policies)}
     rates = sorted(filtered["perturbation_rate"].unique())
@@ -120,7 +120,7 @@ def write_latex_assets(summary: pd.DataFrame, output_dir: Path) -> None:
     lines.extend(
         [
             "\\end{tikzpicture}",
-            "\\caption{Objective value under topology perturbation. The validation gate compares keep-current, diversity-aware placement, topology-aware greedy, and online DQN refinement using held-out perturbation samples, relocation cost, and validation variability.}",
+            "\\caption{Objective value under topology perturbation. Online DQN is evaluated as a sequential cache-update policy against no-update, diversity-aware placement, topology-aware greedy, and fixed Greedy+DQN baselines.}",
             "\\label{fig:objective_perturbation}",
             "\\end{figure}",
             "",

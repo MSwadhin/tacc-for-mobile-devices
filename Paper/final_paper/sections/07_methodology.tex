@@ -2,7 +2,7 @@
 
 \subsection{Overview}
 
-The proposed method is a three-stage online policy framework built on top of a mobility-derived graph, a node-specific demand matrix, and the currently deployed cache state. The first stage constructs strong candidate placements, including diversified popularity and topology-aware greedy placement. The second stage refines the currently deployed placement using DQN-based local search. The third stage is a lightweight validation gate that compares keep-current, diversified, greedy, and online DQN candidates using held-out perturbation samples, relocation cost against the deployed cache, variability, and computation cost. The method is designed around the observation that adaptation is useful only when the new placement improves the current cache enough to justify rewriting it.
+The proposed method is a two-stage online policy framework built on top of a mobility-derived graph, a node-specific demand matrix, and the currently deployed cache state. The first stage constructs strong structured placements, including diversified popularity and topology-aware greedy placement. The second stage refines the currently deployed placement using DQN-based local search. The method is designed around the observation that adaptation is useful only when local cache edits improve the current cache enough to justify rewriting it.
 
 \begin{figure}[t]
 \centering
@@ -17,19 +17,17 @@ The proposed method is a three-stage online policy framework built on top of a m
 \node[block, below left=0.7cm and 1.7cm of demand] (greedy) {Topology-Aware Greedy};
 \node[block, below=0.7cm of demand] (diverse) {Diversified Placement};
 \node[block, below right=0.7cm and 1.7cm of demand] (dqn) {Online DQN Refinement};
-\node[block, below=2.0cm of demand] (selector) {Validation Gate};
-\node[block, below=of selector] (eval) {Perturbation Evaluation};
+\node[block, below=2.0cm of demand] (eval) {Perturbation Evaluation};
 \draw[arrow] (trace) -- (graph);
 \draw[arrow] (graph) -- (demand);
 \draw[arrow] (demand) -- (greedy);
 \draw[arrow] (demand) -- (diverse);
 \draw[arrow] (demand) -- (dqn);
-\draw[arrow] (greedy) -- (selector);
-\draw[arrow] (diverse) -- (selector);
-\draw[arrow] (dqn) -- (selector);
-\draw[arrow] (selector) -- (eval);
+\draw[arrow] (greedy) -- (eval);
+\draw[arrow] (diverse) -- (eval);
+\draw[arrow] (dqn) -- (eval);
 \end{tikzpicture}
-\caption{Online topology-aware caching pipeline. Candidate placements are evaluated under graph perturbation against the currently deployed cache state, and the validation gate selects a deployment using cache objective, relocation cost, variability, and optimization cost.}
+\caption{Online topology-aware caching pipeline. Topology-aware and diversified placements provide strong structured baselines, while Online DQN refines the currently deployed cache and is evaluated under graph perturbation with relocation charged against the previous online placement.}
 \label{fig:pipeline}
 \end{figure}
 
@@ -49,13 +47,13 @@ This demand model is not intended to replace real content logs. It is a controll
 
 For perturbation rate \(p\), each node is removed with probability \(p\), and each edge is removed with probability \(p/2\). The largest connected component is retained. This sampler creates progressively less stable cooperative graphs while preserving enough structure for evaluation. Candidate policies are evaluated over repeated samples so that objective mean and variance can be measured.
 
-The perturbation model is intentionally simple, but it isolates an important effect. A placement optimized for the nominal graph may rely on central nodes or short paths that disappear under perturbation. A more diverse placement may survive moderate perturbation better because more objects remain reachable. The selector uses this difference to choose among candidate policies and to decide whether DQN refinement is worth its added cost.
+The perturbation model is intentionally simple, but it isolates an important effect. A placement optimized for the nominal graph may rely on central nodes or short paths that disappear under perturbation. A more diverse placement may survive moderate perturbation better because more objects remain reachable. Online DQN is evaluated in the same perturbed windows to test whether local refinement of the deployed cache remains useful as the active graph changes.
 
-The perturbation rate should be interpreted as an operating-regime descriptor rather than as a permanent physical failure probability. A larger \(p\) means that the controller sees fewer active APs and fewer reliable cooperative links in a validation window. This changes access paths, origin misses, redundancy relationships, and the value of replicas. The experiments evaluate \(p\) through 0.25 to test whether stronger perturbation makes the validation gate useful or whether transition-aware online DQN remains sufficient. Beyond this range, many sampled graphs can become dominated by disconnected or near-local behavior, and the system should trigger topology re-estimation or a fallback placement mode rather than assuming that the same cooperative objective remains equally informative.
+The perturbation rate should be interpreted as an operating-regime descriptor rather than as a permanent physical failure probability. A larger \(p\) means that the controller sees fewer active APs and fewer reliable cooperative links in an operating window. This changes access paths, origin misses, redundancy relationships, and the value of replicas. The experiments evaluate \(p\) through 0.25 to test whether transition-aware Online DQN remains useful under stronger perturbation. Beyond this range, many sampled graphs can become dominated by disconnected or near-local behavior, and the system should trigger topology re-estimation or a fallback placement mode rather than assuming that the same cooperative objective remains equally informative.
 
 \subsection{Baseline Policies}
 
-The baseline set is designed to avoid weak comparisons. Random placement measures the value of unstructured diversity. Local popularity measures independent AP optimization. Global popularity measures the effect of storing the same popular objects everywhere. Diversified popularity shifts popular-object slices across APs to increase cooperative catalog coverage. Topology-aware greedy measures direct optimization of the proposed objective. Fixed Greedy+DQN measures learning-based refinement around a structured warm start. Online DQN measures transition-aware refinement from the currently deployed cache. The validation-gated row measures whether a cost-aware safeguard changes the deployment relative to Online DQN.
+The baseline set is designed to avoid weak comparisons. Random placement measures the value of unstructured diversity. Local popularity measures independent AP optimization. Global popularity measures the effect of storing the same popular objects everywhere. Diversified popularity shifts popular-object slices across APs to increase cooperative catalog coverage. Topology-aware greedy measures direct optimization of the proposed objective. Fixed Greedy+DQN measures learning-based refinement around a structured warm start. Keep Current measures the no-update option. Online DQN measures transition-aware refinement from the currently deployed cache.
 
 \subsection{Topology-Aware Greedy Placement}
 
@@ -105,40 +103,8 @@ The DQN uses two hidden layers with ReLU activations, replay-buffer sampling, a 
 
 The learning component is therefore deliberately bounded. It is not trained to construct a full placement from scratch, which would make the action space too large and the result difficult to interpret. Instead, the DQN learns where the currently deployed solution has local weaknesses under sampled perturbations. A useful action may replace a redundant object, introduce a replica at a more resilient node, or reduce expected cooperative path length. If the proposed move fails the objective check, the placement remains unchanged. This design makes learning part of the adaptive method while preserving relocation awareness.
 
-\subsection{Validation Gate}
-
-The validation gate selects among keep-current, diversified popularity, topology-aware greedy, and online DQN refinement. It evaluates each candidate against the currently deployed placement \(x^{t-1}\), so a candidate that requires many cache rewrites must earn enough access-cost or redundancy improvement to justify its relocation cost. Online DQN is trained from \(x^{t-1}\), which gives learning a concrete role: it searches for low-churn local improvements rather than proposing a fixed replacement placement.
-
-The gate answers a different question from the placement algorithms. Keep-current asks whether rewriting can be avoided. Diversified popularity asks whether broad catalog coverage is enough. Topology-aware greedy asks whether directly optimizing the stochastic objective is enough. Online DQN asks whether local learned substitutions improve the deployed cache with acceptable churn. The gate asks which of those answers is justified in the current perturbation regime after accounting for validation quality, variability, replication pressure, relocation, and optimization overhead.
-
-For each candidate policy, the selector computes
-\[
-S(\pi)=\bar{J}_{\text{val}}(\pi)+\alpha\sigma_{\text{val}}(\pi)+\rho p^2 R(\pi)+\eta\Omega(\pi)-\kappa U(\pi),
-\]
-where \(\bar{J}_{\text{val}}\) is validation objective, \(\sigma_{\text{val}}\) is validation standard deviation, \(R(\pi)\) is average replication cost, \(\Omega(\pi)\) is a normalized optimization-cost estimate, and \(U(\pi)\) is an instability credit applied to DQN when the best cheap candidate is highly variable. The \(p^2\) term makes replication pressure grow smoothly with perturbation intensity rather than using a fixed regime switch. The selected policy is
-\[
-\pi^*=\arg\min_{\pi}S(\pi).
-\]
-
-This rule keeps selection dynamic rather than fixed. If a cheap placement is already reliable, it can be selected without paying learning cost. If the current cache has local weaknesses, online DQN can be selected because it modifies the deployed placement incrementally rather than replacing it wholesale. The policy choice is therefore learned from validation evidence in each regime, not hard-coded by perturbation rate.
-
-\begin{algorithm}[t]
-\caption{Validation-Gated Policy Selection}
-\label{alg:adaptive_selector}
-\begin{algorithmic}[1]
-\Require Cheap policies \(\Pi_0\), deployed placement \(x^{t-1}\), perturbation rate \(p\), validation sampler \(\mathcal{V}_p\)
-\For{each policy \(\pi \in \Pi_0\)}
-    \State Evaluate \(\pi\) against \(x^{t-1}\) on held-out perturbation samples from \(\mathcal{V}_p\)
-    \State Compute cost-aware score \(S(\pi)\)
-\EndFor
-\State Train online DQN from \(x^{t-1}\) and produce refined placement \(\pi_D(x^{t-1})\)
-\State Compute \(S(\pi_D)\) including relocation, optimization cost, and instability credit
-\State \Return policy with minimum computed score \(S(\pi)\)
-\end{algorithmic}
-\end{algorithm}
-
 \subsection{Computational Complexity}
 
 The greedy stage is the most expensive deterministic component. If there are \(N\) nodes, \(M\) content objects, cache capacity \(K\), and \(S\) perturbation samples per marginal evaluation, naive greedy search can require \(O(NKMNS)\) objective evaluations. Candidate filtering reduces the effective value of \(M\) by considering only high-demand objects at each node. The DQN action space has size \(NM\), and training cost scales with the number of episodes, steps per episode, and minibatch size. Since online DQN starts from the deployed placement, it does not need to learn an entire placement from an empty cache state.
 
-The gate adds validation overhead for a small set of candidate policies. In the final run, online DQN is selected in all six perturbation windows, including \(p=0.20\) and \(p=0.25\). This result is important because it prevents overclaiming: the gate is not the source of the measured gains in this experiment. It gives DQN a specific operational role as the low-churn online improvement operator, while keep-current, diversified, and greedy placements remain strong non-neural candidates and sanity checks.
+Online DQN adds learning overhead at each online window. In the final run, it is trained for each of the six perturbation rates and evaluated against the previous online placement so that relocation is charged directly. This gives DQN a specific operational role as the low-churn online improvement operator, while Keep Current, diversified, greedy, and fixed Greedy+DQN placements remain comparison baselines.

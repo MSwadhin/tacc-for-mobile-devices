@@ -1,47 +1,47 @@
 \begin{figure}[t]
 \centering
 \begin{tikzpicture}[x=1cm,y=1cm]
-\draw[->] (0.55,0.45) -- (8.70,0.45) node[right] {Policy};
-\draw[->] (0.55,0.45) -- (0.55,3.35) node[above] {Objective components};
-\fill[blue!45] (0.95,0.45) rectangle (1.55,2.75);
-\fill[teal!55] (0.95,2.75) rectangle (1.55,2.84);
-\fill[orange!60] (0.95,2.84) rectangle (1.55,2.95);
-\fill[red!45] (0.95,2.95) rectangle (1.55,2.95);
-\draw (0.95,0.45) rectangle (1.55,2.95);
-\node[rotate=35, anchor=east] at (1.50,0.28) {Diversified};
-\fill[blue!45] (2.10,0.45) rectangle (2.70,2.78);
-\fill[teal!55] (2.10,2.78) rectangle (2.70,2.83);
-\fill[orange!60] (2.10,2.83) rectangle (2.70,2.85);
-\fill[red!45] (2.10,2.85) rectangle (2.70,2.85);
-\draw (2.10,0.45) rectangle (2.70,2.85);
-\node[rotate=35, anchor=east] at (2.65,0.28) {Topo-Greedy};
-\fill[blue!45] (3.25,0.45) rectangle (3.85,2.76);
-\fill[teal!55] (3.25,2.76) rectangle (3.85,2.82);
-\fill[orange!60] (3.25,2.82) rectangle (3.85,2.89);
-\fill[red!45] (3.25,2.89) rectangle (3.85,2.92);
-\draw (3.25,0.45) rectangle (3.85,2.92);
-\node[rotate=35, anchor=east] at (3.80,0.28) {Greedy+DQN};
-\fill[blue!45] (4.40,0.45) rectangle (5.00,2.38);
-\fill[teal!55] (4.40,2.38) rectangle (5.00,2.44);
-\fill[orange!60] (4.40,2.44) rectangle (5.00,2.46);
-\fill[red!45] (4.40,2.46) rectangle (5.00,2.47);
-\draw (4.40,0.45) rectangle (5.00,2.47);
-\node[rotate=35, anchor=east] at (4.95,0.28) {Online DQN};
-\fill[blue!45] (5.55,0.45) rectangle (6.15,2.38);
-\fill[teal!55] (5.55,2.38) rectangle (6.15,2.44);
-\fill[orange!60] (5.55,2.44) rectangle (6.15,2.46);
-\fill[red!45] (5.55,2.46) rectangle (6.15,2.47);
-\draw (5.55,0.45) rectangle (6.15,2.47);
-\node[rotate=35, anchor=east] at (6.10,0.28) {Validation Gate};
-\fill[blue!45] (6.65,3.05) rectangle (6.95,3.23);
-\node[right] at (7.00,3.14) {Access};
-\fill[teal!55] (6.65,2.75) rectangle (6.95,2.93);
-\node[right] at (7.00,2.84) {Replication};
-\fill[orange!60] (6.65,2.45) rectangle (6.95,2.63);
-\node[right] at (7.00,2.54) {Redundancy};
-\fill[red!45] (6.65,2.15) rectangle (6.95,2.33);
-\node[right] at (7.00,2.24) {Relocation};
+\draw[->] (0.55,0.45) -- (8.65,0.45) node[right] {Perturbation rate};
+\draw[->] (0.55,0.45) -- (0.55,3.35) node[above] {Weighted overhead};
+\node[left] at (0.50,0.45) {0};
+\node[left] at (0.50,3.00) {0.34};
+\fill[teal!55] (1.00,0.45) rectangle (1.60,0.88);
+\fill[orange!60] (1.00,0.88) rectangle (1.60,1.07);
+\fill[red!45] (1.00,1.07) rectangle (1.60,1.12);
+\draw (1.00,0.45) rectangle (1.60,1.12);
+\node[below] at (1.30,0.45) {0.00};
+\fill[teal!55] (2.05,0.45) rectangle (2.65,0.93);
+\fill[orange!60] (2.05,0.93) rectangle (2.65,1.33);
+\fill[red!45] (2.05,1.33) rectangle (2.65,1.42);
+\draw (2.05,0.45) rectangle (2.65,1.42);
+\node[below] at (2.35,0.45) {0.05};
+\fill[teal!55] (3.10,0.45) rectangle (3.70,0.97);
+\fill[orange!60] (3.10,0.97) rectangle (3.70,1.37);
+\fill[red!45] (3.10,1.37) rectangle (3.70,1.50);
+\draw (3.10,0.45) rectangle (3.70,1.50);
+\node[below] at (3.40,0.45) {0.10};
+\fill[teal!55] (4.15,0.45) rectangle (4.75,1.08);
+\fill[orange!60] (4.15,1.08) rectangle (4.75,1.84);
+\fill[red!45] (4.15,1.84) rectangle (4.75,2.03);
+\draw (4.15,0.45) rectangle (4.75,2.03);
+\node[below] at (4.45,0.45) {0.15};
+\fill[teal!55] (5.20,0.45) rectangle (5.80,1.14);
+\fill[orange!60] (5.20,1.14) rectangle (5.80,2.12);
+\fill[red!45] (5.20,2.12) rectangle (5.80,2.45);
+\draw (5.20,0.45) rectangle (5.80,2.45);
+\node[below] at (5.50,0.45) {0.20};
+\fill[teal!55] (6.25,0.45) rectangle (6.85,1.16);
+\fill[orange!60] (6.25,1.16) rectangle (6.85,2.31);
+\fill[red!45] (6.25,2.31) rectangle (6.85,2.61);
+\draw (6.25,0.45) rectangle (6.85,2.61);
+\node[below] at (6.55,0.45) {0.25};
+\fill[teal!55] (7.15,3.05) rectangle (7.45,3.23);
+\node[right] at (7.50,3.14) {Replication};
+\fill[orange!60] (7.15,2.75) rectangle (7.45,2.93);
+\node[right] at (7.50,2.84) {Redundancy};
+\fill[red!45] (7.15,2.45) rectangle (7.45,2.63);
+\node[right] at (7.50,2.54) {Relocation};
 \end{tikzpicture}
-\caption{Objective component breakdown at nominal perturbation. Access cost dominates the objective, while redundancy and relocation distinguish the strongest policies.}
+\caption{Weighted non-access overhead for Online DQN across perturbation windows. Replication, redundancy, and relocation are intentionally small relative to access cost under the configured objective weights, but they grow with perturbation and make cache churn visible.}
 \label{fig:generated_cost_components}
 \end{figure}

@@ -2,7 +2,7 @@
 
 \subsection{Experimental Protocol}
 
-The experiment uses seed 11, 20 AP nodes, 190 mobility edges, 48 content objects, cache capacity 5, Zipf parameter \(\alpha=0.85\), locality multiplier 2.8, and 12 evaluation samples per perturbation rate. Perturbation rates are \(p\in\{0.00,0.05,0.10,0.15,0.20,0.25\}\). The DQN refiner uses 85 episodes and 16 steps per online refinement window. The evaluation is repeated over perturbation samples so that both mean objective and variability can be observed. The online controller is evaluated sequentially: the selected placement at one perturbation window becomes the relocation reference for the next window.
+The experiment uses seed 11, 20 AP nodes, 190 mobility edges, 48 content objects, cache capacity 5, Zipf parameter \(\alpha=0.85\), locality multiplier 2.8, and 12 evaluation samples per perturbation rate. Perturbation rates are \(p\in\{0.00,0.05,0.10,0.15,0.20,0.25\}\). The DQN refiner uses 85 episodes and 16 steps per online refinement window. The evaluation is repeated over perturbation samples so that both mean objective and variability can be observed. Online DQN is evaluated sequentially: its refined placement at one perturbation window becomes the relocation reference for the next window.
 
 \begin{table}[t]
 \centering
@@ -20,14 +20,14 @@ Perturbation rates & 0.00, 0.05, 0.10, 0.15, 0.20, 0.25 \\
 Evaluation samples/rate & 12 \\
 DQN episodes & 85 \\
 DQN steps/episode & 16 \\
-Runtime & 233.5 seconds \\
+Runtime & 233.1 seconds \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \subsection{Policies Compared}
 
-The evaluation compares nine policy rows. Keep-current is the no-op candidate that carries the previous online placement forward. Random placement measures unstructured diversity. Local popularity caches the top-\(K\) objects at each AP according to local demand. Global popularity stores the same globally popular objects at all APs. Diversified popularity shifts popular-object slices across APs to increase cooperative coverage. Topology-aware greedy optimizes the proposed objective using marginal gains. Greedy + DQN refines the greedy placement as a fixed warm-start ablation. Online DQN refines the currently deployed placement at each window. The validation-gated row records which candidate would actually be deployed after comparing validation objective, policy variability, replication pressure, relocation cost, and computation cost.
+The evaluation compares eight policy rows. Keep Current is the no-update baseline that carries the previous online placement forward. Random placement measures unstructured diversity. Local popularity caches the top-\(K\) objects at each AP according to local demand. Global popularity stores the same globally popular objects at all APs. Diversified popularity shifts popular-object slices across APs to increase cooperative coverage. Topology-aware greedy optimizes the proposed objective using marginal gains. Greedy + DQN refines the greedy placement as a fixed warm-start ablation. Online DQN refines the currently deployed placement at each window.
 
 This baseline set is intentionally strong. Diversified popularity is simple but competitive because it increases the number of distinct objects available in the cooperative graph. Including it prevents the study from overstating the value of topology-aware optimization by comparing only against weak popularity baselines.
 
@@ -37,25 +37,26 @@ The primary metric is the total objective. Lower objective indicates a better ba
 
 The hit-ratio decomposition is important. Local hit ratio is the probability mass served at the requesting node. Cooperative hit ratio is the probability mass served by another active node in the perturbed graph. Origin miss ratio is the remaining probability mass served by the origin. A policy can have a reasonable total hit ratio but still be operationally poor if most hits require long cooperative paths or if it creates excessive replication. This is why the objective and cost components are reported alongside hit ratios.
 
-Replication, redundancy, and relocation are interpreted as operational costs rather than separate success metrics. Replication is the average active replica count per active node and contributes through \(\lambda C_{\text{rep}}\). Redundancy is the edge-weighted duplicate-content overlap among active APs and contributes through \(\beta C_{\text{red}}\). Relocation is the average number of changed cache entries relative to the previous online placement and contributes through \(\mu C_{\text{rel}}\). Static baseline rows have zero relocation after their initial deployment because they represent a continuously deployed fixed policy. Online DQN and the validation-gated deployment report nonzero relocation when the online controller actually rewrites cache entries between windows.
+Replication, redundancy, and relocation are interpreted as operational costs rather than separate success metrics. Replication is the average active replica count per active node and contributes through \(\lambda C_{\text{rep}}\). Redundancy is the edge-weighted duplicate-content overlap among active APs and contributes through \(\beta C_{\text{red}}\). Relocation is the average number of changed cache entries relative to the previous online placement and contributes through \(\mu C_{\text{rel}}\). Static baseline rows have zero relocation after their initial deployment because they represent a continuously deployed fixed policy. Online DQN reports nonzero relocation when the online controller actually rewrites cache entries between windows.
 
 \begin{table}[t]
 \centering
-\caption{Measured performance at the nominal perturbation setting. Lower objective and access cost are better; higher hit ratio is better.}
+\caption{Measured performance at the nominal perturbation setting. Lower objective, access cost, replication, redundancy, and relocation are better; higher hit ratio is better.}
 \label{tab:measured_results}
-\begin{tabular}{lrrrr}
+\scriptsize
+\setlength{\tabcolsep}{2pt}
+\begin{tabular}{lrrrrrr}
 \toprule
-Policy & Objective & Access Cost & Hit Ratio & Relocation \\
+Policy & Obj. & Access & Hit & Repl. & Redun. & Reloc. \\
 \midrule
-Validation Gate & 2.209 & 2.120 & 1.000 & 0.150 \\
-Online DQN Refinement & 2.209 & 2.120 & 1.000 & 0.150 \\
-Topology-Aware Greedy & 2.633 & 2.554 & 0.987 & 0.000 \\
-Keep Current & 2.633 & 2.554 & 0.987 & 0.000 \\
-Greedy + DQN Refinement & 2.711 & 2.525 & 0.987 & 0.800 \\
-Diversified Popularity & 2.739 & 2.521 & 0.987 & 0.000 \\
-Random & 6.723 & 6.115 & 0.877 & 0.000 \\
-Local Popularity & 16.728 & 13.533 & 0.638 & 0.000 \\
-Global Popularity & 24.925 & 20.325 & 0.432 & 0.000 \\
+Online DQN Refinement & 2.209 & 2.120 & 1.000 & 2.900 & 0.001 & 0.150 \\
+Topology-Aware Greedy & 2.633 & 2.554 & 0.987 & 2.750 & 0.001 & 0.000 \\
+Keep Current & 2.633 & 2.554 & 0.987 & 2.750 & 0.001 & 0.000 \\
+Greedy + DQN Refinement & 2.711 & 2.525 & 0.987 & 3.450 & 0.005 & 0.800 \\
+Diversified Popularity & 2.739 & 2.521 & 0.987 & 5.000 & 0.007 & 0.000 \\
+Random & 6.723 & 6.115 & 0.877 & 5.000 & 0.028 & 0.000 \\
+Local Popularity & 16.728 & 13.533 & 0.638 & 5.000 & 0.172 & 0.000 \\
+Global Popularity & 24.925 & 20.325 & 0.432 & 5.000 & 0.250 & 0.000 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -75,19 +76,18 @@ Diversified Popularity & 2.739 & 3.472 & 3.249 & 5.252 & 3.932 & 4.649 \\
 Topology-Aware Greedy & 2.633 & 4.013 & 4.336 & 5.172 & 5.892 & 7.467 \\
 Greedy + DQN Refinement & 2.711 & 3.512 & 3.911 & 4.353 & 4.973 & 6.280 \\
 Online DQN Refinement & 2.209 & 3.398 & 3.284 & 3.555 & 3.307 & 4.415 \\
-Validation Gate & 2.209 & 3.398 & 3.284 & 3.555 & 3.307 & 4.415 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\input{generated/table_compact_metrics}
 \input{generated/fig_objective_trends}
 \input{generated/fig_hit_breakdown}
 \input{generated/fig_cost_components}
+\input{generated/table_compact_metrics}
 
 \subsection{Nominal-Graph Results}
 
-At \(p=0.00\), Online DQN achieves objective 2.209, compared with 2.711 for fixed Greedy + DQN, 2.633 for topology-aware greedy, and 2.739 for diversified popularity. The online result is better because DQN is no longer treated as a fixed placement trained once from greedy. It starts from the deployed topology-aware greedy cache and makes a small number of accepted changes, producing relocation 0.150 per active node while improving access cost to 2.120. The validation gate selects Online DQN even in the stable window because the gain is large enough to justify the measured cache rewrite.
+At \(p=0.00\), Online DQN achieves objective 2.209, compared with 2.711 for fixed Greedy + DQN, 2.633 for topology-aware greedy, and 2.739 for diversified popularity. The online result is better because DQN is no longer treated as a fixed placement trained once from greedy. It starts from the deployed topology-aware greedy cache and makes a small number of accepted changes, producing relocation 0.150 per active node while improving access cost to 2.120.
 
 The popularity baselines show the cost of ignoring cooperation. Local popularity has objective 16.728 because it does not use neighboring caches effectively. Global popularity has objective 24.925 because it duplicates the same content across the network and leaves little cooperative diversity. Random placement performs better than local and global popularity in this dense graph because random diversity sometimes creates reachable content coverage, but it remains far weaker than topology-aware and online-refined policies.
 
@@ -95,58 +95,18 @@ The popularity baselines show the cost of ignoring cooperation. Local popularity
 
 Perturbation changes the relative value of the policies. At \(p=0.05\) and \(p=0.10\), diversified popularity has the lowest objective among the static candidates. This result is important because diversified popularity is not explicitly graph-optimized. Its advantage comes from broader catalog coverage: when moderate perturbation removes some nodes and edges, a wider content footprint can preserve cooperative hits.
 
-At \(p=0.05\), \(p=0.10\), \(p=0.15\), \(p=0.20\), and \(p=0.25\), Online DQN remains the policy selected by the validation gate, with objectives 3.398, 3.284, 3.555, 3.307, and 4.415. The high-perturbation result is especially important: fixed Greedy + DQN has objective 6.280 at \(p=0.25\), while Online DQN reaches 4.415 because it refines the placement already deployed by the controller instead of asking the network to switch to a separately trained fixed placement. The no-op candidate is competitive at \(p=0.25\) with observed objective 4.342, so the gate should not be overinterpreted as a new source of performance; its measured role is to document that Online DQN was compared against keep-current and low-cost alternatives.
+At \(p=0.05\), \(p=0.10\), \(p=0.15\), \(p=0.20\), and \(p=0.25\), Online DQN obtains objectives 3.398, 3.284, 3.555, 3.307, and 4.415. The high-perturbation result is especially important: fixed Greedy + DQN has objective 6.280 at \(p=0.25\), while Online DQN reaches 4.415 because it refines the placement already deployed by the controller instead of asking the network to switch to a separately trained fixed placement. The no-update baseline is competitive at \(p=0.25\) with observed objective 4.342, which shows that future controllers should include statistical confidence before rewriting under severe perturbation. The main empirical result remains that transition-aware Online DQN dominates fixed Greedy+DQN and topology-aware greedy across the tested perturbation range.
 
-\begin{table}[t]
-\centering
-\caption{Validation decision by perturbation regime.}
-\label{tab:strategy_regimes}
-\footnotesize
-\setlength{\tabcolsep}{2pt}
-\begin{tabular}{p{0.10\linewidth}p{0.18\linewidth}p{0.20\linewidth}p{0.34\linewidth}}
-\toprule
-Rate & Validation decision & Strong observed comparator & Interpretation \\
-\midrule
-\(0.00\) & Online DQN & Topology-aware greedy & Three cache-entry changes improve the deployed greedy cache enough to justify relocation. \\
-\(0.05\) & Online DQN & Diversified popularity & Refinement continues from the deployed DQN state and preserves strong access quality under mild perturbation. \\
-\(0.10\) & Online DQN & Diversified popularity & Diversified placement is competitive, but validation favors continuing transition-aware refinement. \\
-\(0.15\) & Online DQN & Fixed Greedy+DQN & Transition-aware refinement is stronger than separately trained fixed refinement under churn. \\
-\(0.20\) & Online DQN & Keep current & The no-op row becomes competitive, but validation still favors DQN under held-out perturbation scores. \\
-\(0.25\) & Online DQN & Keep current & The no-op row has slightly lower observed mean objective, so this window is treated as a calibration caution rather than a separate selector contribution. \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-The proposed strong methods outperform the simple baselines in every tested perturbation regime. Random, local popularity, and global popularity never achieve the lowest objective. Topology-aware greedy, fixed Greedy + DQN, Online DQN, and diversified popularity each outperform those simple baselines because they exploit at least one cooperative property: graph-aware retrieval, learned local refinement, or catalog diversity. The strongest conclusion is that DQN must be transition-aware. Fixed Greedy + DQN is useful, but Online DQN is the method that matches the sequential cache-update goal. The validation gate is retained as a safeguard and reporting device, not as a claimed independent improvement over Online DQN.
-
-\begin{table}[t]
-\centering
-\caption{Policy chosen by the validation gate at each perturbation rate.}
-\label{tab:selected_policy}
-\begin{tabular}{lr}
-\toprule
-Perturbation rate & Selected policy \\
-\midrule
-0.00 & Online DQN Refinement \\
-0.05 & Online DQN Refinement \\
-0.10 & Online DQN Refinement \\
-0.15 & Online DQN Refinement \\
-0.20 & Online DQN Refinement \\
-0.25 & Online DQN Refinement \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\input{generated/fig_selector_pie}
+The proposed strong methods outperform the simple baselines in every tested perturbation regime. Random, local popularity, and global popularity never achieve the lowest objective. Topology-aware greedy, fixed Greedy + DQN, Online DQN, and diversified popularity each outperform those simple baselines because they exploit at least one cooperative property: graph-aware retrieval, learned local refinement, or catalog diversity. The strongest conclusion is that DQN must be transition-aware. Fixed Greedy + DQN is useful, but Online DQN is the method that matches the sequential cache-update goal.
 
 \subsection{Cost-Component Interpretation}
 
-The cost decomposition clarifies why objective values do not always follow hit ratio alone. A placement with high hit ratio may still have higher objective if it creates large replication or redundancy cost. Conversely, a placement with slightly lower hit ratio may be preferable if it serves demand through shorter paths or maintains lower churn. This is why diversified popularity is competitive under moderate perturbation but not uniformly dominant: it improves coverage but can carry replication and redundancy costs that become less attractive under high churn.
+The cost decomposition clarifies why objective values do not always follow hit ratio alone. A placement with high hit ratio may still have higher objective if it creates large replication or redundancy cost. Conversely, a placement with slightly lower hit ratio may be preferable if it serves demand through shorter paths or maintains lower churn. Figure~\ref{fig:generated_cost_components} therefore focuses only on the weighted non-access overhead terms. In absolute objective value, these terms are intentionally smaller than access cost because the configured weights are \(\lambda=0.02\), \(\beta=18.0\), and \(\mu=0.04\), and the raw redundancy values are normalized by graph size. Their role is not to dominate the objective; it is to break ties, discourage wasteful duplication, and make cache rewriting visible when access-cost gains are close.
 
 The DQN result is also interpretable through cost components. Since the online refiner starts from the deployed cache state, it does not need to discover basic popularity or topology structure. It only needs to find local changes that reduce access cost or redundancy enough to justify relocation. The accepted-action rule ensures that a proposed change cannot reduce measured quality during inference.
 
-The relocation column should not be confused with replication. Replication is nonzero for cache-placing policies because each active cache stores objects. Relocation is zero for fixed policy rows after deployment because those rows represent continuing the same policy across windows. Online DQN reports nonzero relocation because the controller actually changes cache entries: 0.150 at \(p=0.00\), 0.290 at \(p=0.05\), 0.437 at \(p=0.10\), 0.636 at \(p=0.15\), 1.113 at \(p=0.20\), and 1.022 at \(p=0.25\). This distinction matters because replication affects storage and update pressure, redundancy affects whether replicas are useful or wasteful given AP relatedness, and relocation affects how disruptive adaptation would be in operation.
+The relocation column should not be confused with replication. Replication is nonzero for cache-placing policies because each active cache stores objects. Relocation is zero for fixed policy rows after deployment because those rows represent continuing the same policy across windows. Online DQN reports nonzero relocation because the controller actually changes cache entries: 0.150 at \(p=0.00\), 0.290 at \(p=0.05\), 0.437 at \(p=0.10\), 0.636 at \(p=0.15\), 1.113 at \(p=0.20\), and 1.022 at \(p=0.25\). This distinction matters because replication affects storage and update pressure, redundancy affects whether replicas are useful or wasteful given AP relatedness, and relocation affects how disruptive adaptation would be in operation. The modest visual size of these terms is therefore expected under the current objective weights rather than a plotting error.
 
 \subsection{Research Question Outcomes}
 
-RQ1 is supported by the constructed AP handoff graph, which contains 20 active AP nodes and 190 weighted mobility edges. RQ2 is supported by the large gap between topology-aware online policies and local or global popularity. At \(p=0.00\), Online DQN has objective 2.209 compared with 16.728 for local popularity and 24.925 for global popularity. RQ3 is supported by the improvement from fixed Greedy + DQN to Online DQN in every perturbation regime, especially at \(p=0.25\), where objective improves from 6.280 to 4.415. RQ4 is answered conservatively: the extended sweep through \(p=0.25\) does not show meaningful policy switching. The evidence supports transition-aware Online DQN as the main online approach, with the validation gate acting as a safeguard and consistency check.
+RQ1 is supported by the constructed AP handoff graph, which contains 20 active AP nodes and 190 weighted mobility edges. RQ2 is supported by the large gap between topology-aware online policies and local or global popularity. At \(p=0.00\), Online DQN has objective 2.209 compared with 16.728 for local popularity and 24.925 for global popularity. RQ3 is supported by the improvement from fixed Greedy + DQN to Online DQN in every perturbation regime, especially at \(p=0.25\), where objective improves from 6.280 to 4.415. RQ4 is answered conservatively: Online DQN is the strongest learned online approach, but the no-update baseline at \(p=0.25\) shows that severe perturbation can make cache rewriting less clearly beneficial.
