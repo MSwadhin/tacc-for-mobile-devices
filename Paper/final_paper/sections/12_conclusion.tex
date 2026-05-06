@@ -2,7 +2,7 @@
 
 We developed a complete topology-aware cooperative caching framework for IoT edge networks. The study produced a formal online problem statement, research questions, dataset strategy, executable pipeline, implemented baselines, transition-aware DQN refinement, and measured results.
 
-The results show that topology-aware online strategies outperform simple local and global caching baselines. Fixed Greedy+DQN is useful as an ablation, but the stronger result is that Online DQN refinement improves the currently deployed cache relative to fixed learned refinement in every tested perturbation window through \(p=0.25\). The no-update baseline is competitive at the highest perturbation rate, so cache rewriting should be treated as a measured decision rather than an automatic step.
+The results show that topology-aware online strategies outperform simple local and global caching baselines. Fixed Greedy+DQN is useful as an ablation, but the stronger result is that Online DQN refinement improves the currently deployed cache relative to fixed learned refinement across the tested perturbation range. The no-update baseline is slightly better at \(p=0.25\), so cache rewriting should be treated as a measured decision rather than an automatic step.
 
 The results indicate that cooperative edge caching should not be designed as a single static placement rule. Mobility-derived topology, perturbation level, cache diversity, and relocation stability all matter. A robust system should therefore combine structural optimization and bounded transition-aware learning with explicit reporting of access, replication, redundancy, and relocation costs.
 
